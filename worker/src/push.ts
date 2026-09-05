@@ -3,7 +3,7 @@
 // @mmmike/web-push を使う(Cloudflare Workers公式対応)。
 
 import { sendPushNotification } from "@mmmike/web-push/send";
-import type { Alert } from "./alerts";
+import { buildAlerts, DEFAULT_PREFERENCES, type WeatherDiff } from "./alerts";
 import type { Env } from "./types";
 import type { PushSubscriptionInput } from "./validate";
 
@@ -41,9 +41,7 @@ async function listSubscriptions(env: Env): Promise<PushSubscriptionInput[]> {
   return results;
 }
 
-export async function sendAlertsToAllSubscriptions(env: Env, alerts: Alert[]): Promise<void> {
-  if (alerts.length === 0) return;
-
+export async function sendDiffToAllSubscriptions(env: Env, diff: WeatherDiff): Promise<void> {
   if (!env.VAPID_PRIVATE_KEY) {
     console.warn("[push] VAPID_PRIVATE_KEY未設定のため通知をスキップしました。");
     return;
@@ -60,10 +58,14 @@ export async function sendAlertsToAllSubscriptions(env: Env, alerts: Alert[]): P
 
   // 購読者ごとに並列送信する(直列だと購読者×アラート数だけ待つことになり、
   // 大人数に対してWorkerのバックグラウンド実行時間を圧迫しかねない)。
+  // アラート内容は購読者ごとの通知条件(降水通知の有無・気温急変の閾値)で
+  // 変わりうるため、購読者ごとにbuildAlertsを呼んで個別に組み立てる。
   const deadEndpoints = new Set<string>();
 
   await Promise.allSettled(
     subscriptions.map(async (subscription) => {
+      const prefs = subscription.preferences ?? DEFAULT_PREFERENCES;
+      const alerts = buildAlerts(diff, prefs);
       for (const alert of alerts) {
         try {
           await sendPushNotification(subscription, { title: alert.title, body: alert.body }, vapid);

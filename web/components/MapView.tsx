@@ -19,12 +19,22 @@ function ensurePmtilesProtocol() {
 
 export function MapView({
   observation,
+  onPick,
 }: {
   observation: WeatherObservation | null;
+  onPick?: (lat: number, lon: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const [tileLoadFailed, setTileLoadFailed] = useState(false);
+
+  // 地図初期化effect(マウント時に一度だけ実行)がクリックハンドラを
+  // 登録する際、onPickの最新の参照をrefで持って読むことで、親の再レンダー
+  // で関数の参照が変わっても古いonPickを掴んだままにならないようにする。
+  const onPickRef = useRef(onPick);
+  useEffect(() => {
+    onPickRef.current = onPick;
+  }, [onPick]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -44,6 +54,11 @@ export function MapView({
       console.warn("[MapView] map error", e.error);
       setTileLoadFailed(true);
     });
+
+    map.on("click", (e) => {
+      onPickRef.current?.(e.lngLat.lat, e.lngLat.lng);
+    });
+    map.getCanvas().style.cursor = "crosshair";
 
     return () => {
       map.remove();

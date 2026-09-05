@@ -5,7 +5,8 @@ import { NextResponse } from "next/server";
 
 // Worker側のローカル開発は `wrangler dev --port 8788`(README参照)なので、
 // 未設定時のデフォルトもそれに合わせる。
-const BASE_URL = process.env.WEATHERGEOBRIDGE_API_BASE_URL ?? "http://localhost:8788";
+const BASE_URL =
+  process.env.WEATHERGEOBRIDGE_API_BASE_URL ?? "http://localhost:8788";
 const API_KEY = process.env.WEATHERGEOBRIDGE_API_KEY ?? "";
 
 export class BackendError extends Error {
@@ -17,7 +18,10 @@ export class BackendError extends Error {
   }
 }
 
-async function backendFetch(path: string, init?: RequestInit): Promise<Response> {
+async function backendFetch(
+  path: string,
+  init?: RequestInit,
+): Promise<Response> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
@@ -57,6 +61,11 @@ export async function fetchForecast(lat: number, lon: number, days = 3) {
   return res.json();
 }
 
+export async function fetchAirQuality(lat: number, lon: number) {
+  const res = await backendFetch(`/api/air-quality?lat=${lat}&lon=${lon}`);
+  return res.json();
+}
+
 export async function fetchVapidPublicKey() {
   const res = await backendFetch("/api/push/vapid-public-key");
   return res.json();
@@ -72,7 +81,10 @@ export async function submitPushSubscription(subscription: unknown) {
 
 // Next.js API Route側の共通catchハンドラ。BackendErrorはWorkerが返した
 // ステータス/メッセージをそのまま転送し、それ以外(接続失敗等)は502にする。
-export function toErrorResponse(err: unknown, fallbackMessage: string): NextResponse {
+export function toErrorResponse(
+  err: unknown,
+  fallbackMessage: string,
+): NextResponse {
   if (err instanceof BackendError) {
     return NextResponse.json({ error: err.message }, { status: err.status });
   }

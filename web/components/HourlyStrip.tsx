@@ -1,4 +1,8 @@
+"use client";
+
 import type { Forecast } from "@/lib/types";
+import { useUnits } from "@/lib/UnitsContext";
+import { formatTempInt } from "@/lib/units";
 import { iconFor } from "@/lib/weatherCode";
 
 function formatHour(iso: string): string {
@@ -6,6 +10,7 @@ function formatHour(iso: string): string {
 }
 
 export function HourlyStrip({ forecast }: { forecast: Forecast }) {
+  const { tempUnit } = useUnits();
   if (forecast.hourly.length === 0) return null;
 
   return (
@@ -32,7 +37,7 @@ export function HourlyStrip({ forecast }: { forecast: Forecast }) {
                 fontWeight: 500,
               }}
             >
-              {point.temperatureC.toFixed(0)}°
+              {formatTempInt(point.temperatureC, tempUnit)}
             </p>
             <p className="text-caption" style={{ margin: 0 }}>
               {point.precipitationProbabilityPercent}%

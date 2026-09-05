@@ -32,10 +32,32 @@ export function parseDays(
   return Math.trunc(days);
 }
 
+import { DEFAULT_PREFERENCES } from "./alerts";
+import type { NotificationPreferences } from "./types";
+
 export interface PushSubscriptionInput {
   endpoint: string;
   keys: { p256dh: string; auth: string };
+  preferences: NotificationPreferences;
   [key: string]: unknown;
+}
+
+function parsePreferences(raw: unknown): NotificationPreferences {
+  if (typeof raw !== "object" || raw === null)
+    return { ...DEFAULT_PREFERENCES };
+  const p = raw as Record<string, unknown>;
+  const notifyPrecipitation =
+    typeof p.notifyPrecipitation === "boolean"
+      ? p.notifyPrecipitation
+      : DEFAULT_PREFERENCES.notifyPrecipitation;
+  const rawThreshold = p.temperatureSwingThresholdC;
+  const temperatureSwingThresholdC =
+    typeof rawThreshold === "number" &&
+    Number.isFinite(rawThreshold) &&
+    rawThreshold > 0
+      ? rawThreshold
+      : DEFAULT_PREFERENCES.temperatureSwingThresholdC;
+  return { notifyPrecipitation, temperatureSwingThresholdC };
 }
 
 export function parsePushSubscription(
@@ -53,5 +75,6 @@ export function parsePushSubscription(
     ...b,
     endpoint: b.endpoint,
     keys: { p256dh: k.p256dh, auth: k.auth },
+    preferences: parsePreferences(b.preferences),
   } as PushSubscriptionInput;
 }

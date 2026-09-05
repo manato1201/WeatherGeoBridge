@@ -1,4 +1,8 @@
+"use client";
+
 import type { WeatherObservation } from "@/lib/types";
+import { useUnits } from "@/lib/UnitsContext";
+import { formatSpeed, formatTemp } from "@/lib/units";
 import { compassLabel, iconFor, labelFor } from "@/lib/weatherCode";
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -11,6 +15,8 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 export function WeatherCard({ observation }: { observation: WeatherObservation }) {
+  const { tempUnit, speedUnit } = useUnits();
+
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -25,9 +31,9 @@ export function WeatherCard({ observation }: { observation: WeatherObservation }
 
       <div>
         <p className="stat-block__label">気温</p>
-        <p className="stat-block__value">{observation.temperatureC.toFixed(1)}℃</p>
+        <p className="stat-block__value">{formatTemp(observation.temperatureC, tempUnit)}</p>
         <p className="stat-block__meta" style={{ margin: 0 }}>
-          体感 {observation.apparentTemperatureC.toFixed(1)}℃
+          体感 {formatTemp(observation.apparentTemperatureC, tempUnit)}
         </p>
       </div>
 
@@ -36,9 +42,9 @@ export function WeatherCard({ observation }: { observation: WeatherObservation }
         <Metric label="湿度" value={`${observation.humidityPercent}%`} />
         <Metric
           label="風"
-          value={`${observation.windSpeedMs.toFixed(1)}m/s ${compassLabel(observation.windDirectionDeg)}`}
+          value={`${formatSpeed(observation.windSpeedMs, speedUnit)} ${compassLabel(observation.windDirectionDeg)}`}
         />
-        <Metric label="突風" value={`${observation.windGustsMs.toFixed(1)}m/s`} />
+        <Metric label="突風" value={formatSpeed(observation.windGustsMs, speedUnit)} />
         <Metric label="雲量" value={`${observation.cloudCoverPercent}%`} />
         <Metric label="気圧" value={`${observation.surfacePressureHpa.toFixed(0)}hPa`} />
       </div>
