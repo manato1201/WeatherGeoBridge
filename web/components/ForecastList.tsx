@@ -3,24 +3,20 @@ import { iconFor } from "@/lib/weatherCode";
 
 export function ForecastList({ forecast }: { forecast: Forecast }) {
   return (
-    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+    <div className="forecast-row">
       {forecast.daily.map((day) => (
-        <div
-          key={day.date}
-          style={{
-            border: "1px solid #ddd",
-            borderRadius: 8,
-            padding: 12,
-            minWidth: 100,
-          }}
-        >
-          <p style={{ margin: 0, fontWeight: "bold" }}>{day.date}</p>
-          <div style={{ fontSize: 24 }}>{iconFor(day.weatherCode)}</div>
-          <p style={{ margin: 0 }}>
-            {day.tempMinC.toFixed(0)}℃ / {day.tempMaxC.toFixed(0)}℃
+        <div key={day.date} className="card card--nested" style={{ minWidth: 108 }}>
+          <p className="text-caption" style={{ margin: 0, fontWeight: 500, color: "var(--color-ink)" }}>
+            {day.date}
           </p>
-          <p style={{ margin: 0, fontSize: 12, color: "#666" }}>
-            {day.precipitationMm.toFixed(1)}mm
+          <div style={{ fontSize: 22, margin: "4px 0" }} aria-hidden="true">
+            {iconFor(day.weatherCode)}
+          </div>
+          <p style={{ margin: 0, fontWeight: 500 }}>
+            {day.tempMinC.toFixed(0)}° / {day.tempMaxC.toFixed(0)}°
+          </p>
+          <p className="text-caption" style={{ margin: 0 }}>
+            降水 {day.precipitationMm.toFixed(1)}mm
           </p>
         </div>
       ))}

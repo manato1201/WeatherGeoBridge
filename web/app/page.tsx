@@ -59,26 +59,46 @@ export default function Page() {
   }, [location]);
 
   return (
-    <main
-      style={{
-        padding: 24,
-        display: "flex",
-        flexDirection: "column",
-        gap: 24,
-        maxWidth: 900,
-      }}
-    >
-      <h1>WeatherGeoBridge</h1>
+    <main className="page-shell">
+      <header className="app-header">
+        <h1 className="app-header__title">WeatherGeoBridge</h1>
+        <p className="app-header__subtitle">天気の取得・通知・地図閲覧</p>
+      </header>
 
-      <LocationPicker onChange={setLocation} />
+      <div className="dashboard-grid">
+        <LocationPicker onChange={setLocation} />
 
-      {loading && <p>読み込み中...</p>}
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+        <div className="section">
+          {loading && <p className="text-muted">読み込み中...</p>}
+          {error && (
+            <p className="text-destructive" style={{ margin: 0 }}>
+              {error}
+            </p>
+          )}
+          {!location && !loading && !error && (
+            <p className="text-muted">左のパネルから地点を選択してください。</p>
+          )}
 
-      {observation && <WeatherCard observation={observation} />}
-      {forecast && <ForecastList forecast={forecast} />}
+          {observation && (
+            <div className="section" style={{ gap: "var(--space-12)" }}>
+              <p className="section__heading">現在の天気</p>
+              <WeatherCard observation={observation} />
+            </div>
+          )}
 
-      <MapView observation={observation} />
+          {forecast && (
+            <div className="section" style={{ gap: "var(--space-12)" }}>
+              <p className="section__heading">予報</p>
+              <ForecastList forecast={forecast} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="section">
+        <p className="section__heading">地図</p>
+        <MapView observation={observation} />
+      </div>
 
       <NotificationOptIn />
     </main>

@@ -1,0 +1,303 @@
+/* WeatherGeoBridge デザイントークン(shadcn/ui系モノクローム、ConsoleDESIGN.md準拠) */
+:root {
+  --color-canvas: #f5f5f5;
+  --color-paper: #ffffff;
+  --color-surface-alt: #fafafa;
+  --color-ink: #0a0a0a;
+  --color-ink-soft: #171717;
+  --color-mid-gray: #737373;
+  --color-hairline: #e5e5e5;
+  --color-ember: #e7000b;
+
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, sans-serif;
+
+  --text-caption: 12px;
+  --leading-caption: 1.33;
+  --tracking-caption: 0.6px;
+  --text-body: 14px;
+  --leading-body: 1.43;
+  --text-body-lg: 16px;
+  --leading-body-lg: 1.5;
+  --text-subheading: 18px;
+  --leading-subheading: 1.56;
+  --text-heading-sm: 24px;
+  --leading-heading-sm: 1.33;
+  --tracking-heading-sm: -0.6px;
+  --text-heading: 30px;
+  --leading-heading: 1.2;
+  --tracking-heading: -0.75px;
+  --text-heading-lg: 36px;
+  --leading-heading-lg: 1.11;
+  --tracking-heading-lg: -0.9px;
+  --text-display: 48px;
+  --leading-display: 1.1;
+  --tracking-display: -2.4px;
+
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-48: 48px;
+
+  --radius-small: 6px;
+  --radius-nested: 10px;
+  --radius-pill: 18px;
+  --radius-card: 24px;
+
+  --shadow-card:
+    0 0 0 1px rgba(23, 23, 23, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1),
+    0 1px 2px -1px rgba(0, 0, 0, 0.1);
+
+  --page-max-width: 1280px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+/* ── レイアウト ─────────────────────────────────────────── */
+
+.page-shell {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: var(--space-24) var(--space-24) var(--space-48);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-48);
+}
+
+.app-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.app-header__title {
+  font-size: var(--text-heading-lg);
+  line-height: var(--leading-heading-lg);
+  letter-spacing: var(--tracking-heading-lg);
+  font-weight: 600;
+  margin: 0;
+}
+
+.app-header__subtitle {
+  font-size: var(--text-body);
+  color: var(--color-mid-gray);
+  margin: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+
+.section__heading {
+  font-size: var(--text-subheading);
+  line-height: var(--leading-subheading);
+  font-weight: 600;
+  margin: 0;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) 1fr;
+  gap: var(--space-24);
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.forecast-row {
+  display: flex;
+  gap: var(--space-12);
+  flex-wrap: wrap;
+}
+
+/* ── カード ─────────────────────────────────────────────── */
+
+.card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-20);
+}
+
+.card--nested {
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-nested);
+  padding: var(--space-12);
+}
+
+/* ── ボタン ─────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  height: 36px;
+  padding: 0 var(--space-12);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn:not(:disabled):hover {
+  opacity: 0.85;
+}
+
+.btn--primary {
+  background: var(--color-ink);
+  color: var(--color-surface-alt);
+}
+
+.btn--secondary {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+.btn--outline {
+  background: transparent;
+  color: var(--color-ink);
+  border: 1px solid var(--color-hairline);
+}
+
+/* ── 入力 ───────────────────────────────────────────────── */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.field__label {
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-caption);
+  text-transform: uppercase;
+  color: var(--color-mid-gray);
+}
+
+.input {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  padding: var(--space-8) var(--space-12);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  width: 100%;
+}
+
+.input:focus-visible {
+  background: var(--color-paper);
+  border-color: var(--color-hairline);
+  outline: none;
+}
+
+/* ── バッジ ─────────────────────────────────────────────── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  padding: 2px var(--space-8);
+  font-size: var(--text-caption);
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.badge--solid {
+  background: var(--color-ink-soft);
+  color: var(--color-surface-alt);
+}
+
+.badge--soft {
+  background: var(--color-canvas);
+  color: var(--color-ink-soft);
+}
+
+.badge--outline {
+  background: transparent;
+  color: var(--color-ink);
+  border: 1px solid var(--color-hairline);
+}
+
+/* ── 統計表示(気温など) ────────────────────────────────── */
+
+.stat-block__label {
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-caption);
+  text-transform: uppercase;
+  color: var(--color-mid-gray);
+  margin: 0;
+}
+
+.stat-block__value {
+  font-size: var(--text-heading-lg);
+  letter-spacing: var(--tracking-heading-lg);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin: var(--space-4) 0;
+}
+
+.stat-block__meta {
+  font-size: var(--text-body);
+  color: var(--color-mid-gray);
+  margin: 0;
+}
+
+.text-caption {
+  font-size: var(--text-caption);
+  color: var(--color-mid-gray);
+}
+
+.text-muted {
+  color: var(--color-mid-gray);
+}
+
+.text-destructive {
+  color: var(--color-ember);
+}
