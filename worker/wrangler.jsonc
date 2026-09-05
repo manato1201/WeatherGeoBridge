@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "weathergeobridge-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-05",
+  "kv_namespaces": [
+    { "binding": "WEATHER_CACHE", "id": "35200476cd4a4ffeb5f9ca02a766a2f3" },
+    { "binding": "PUSH_SUBSCRIPTIONS", "id": "04fd76769c8a4a19b58c494e3d8800ef" }
+  ],
+  "vars": {
+    "VAPID_PUBLIC_KEY": "BK3op_B-KpCUghZCBi_sKnd3kKJNCL5DzslKNkzKpi3Q4ZylIQU3R1Jl0sLptRPt2O6DmRlIrONHky1Q6IWvrcs",
+    "VAPID_SUBJECT": "mailto:example@example.com"
+  }
+}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ForecastList } from "@/components/ForecastList";
+import { HourlyStrip } from "@/components/HourlyStrip";
 import { LocationPicker } from "@/components/LocationPicker";
 import { MapView } from "@/components/MapView";
 import { NotificationOptIn } from "@/components/NotificationOptIn";
@@ -83,6 +84,13 @@ export default function Page() {
             <div className="section" style={{ gap: "var(--space-12)" }}>
               <p className="section__heading">現在の天気</p>
               <WeatherCard observation={observation} />
+            </div>
+          )}
+
+          {forecast && (
+            <div className="section" style={{ gap: "var(--space-12)" }}>
+              <p className="section__heading">時間別(24時間)</p>
+              <HourlyStrip forecast={forecast} />
             </div>
           )}
 

@@ -1,4 +1,4 @@
-// worker/src/types.ts と1:1対応するTS型(WeatherGeoBridge_DESIGN.md Phase0を拡張)。
+// WeatherGeoBridge Worker — 概念モデル(WeatherGeoBridge_DESIGN.md Phase0を拡張)
 
 export interface WeatherObservation {
   lat: number;
@@ -48,11 +48,11 @@ export interface Forecast {
   hourly: HourlyPoint[];
 }
 
-export type LocationSource = "browser_gps" | "manual_pin" | "game_avatar_position";
-
-export interface LocationContext {
-  lat: number;
-  lon: number;
-  accuracyMeters: number | null;
-  source: LocationSource;
+export interface Env {
+  WEATHER_CACHE: KVNamespace;
+  PUSH_SUBSCRIPTIONS: KVNamespace;
+  WEATHERGEOBRIDGE_API_KEY: string;
+  VAPID_PUBLIC_KEY: string;
+  VAPID_PRIVATE_KEY: string;
+  VAPID_SUBJECT: string;
 }
