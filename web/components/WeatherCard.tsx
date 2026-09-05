@@ -3,6 +3,7 @@
 import type { WeatherObservation } from "@/lib/types";
 import { useUnits } from "@/lib/UnitsContext";
 import { formatSpeed, formatTemp } from "@/lib/units";
+import { useCountUp } from "@/lib/useCountUp";
 import { compassLabel, iconFor, labelFor } from "@/lib/weatherCode";
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -16,6 +17,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 export function WeatherCard({ observation }: { observation: WeatherObservation }) {
   const { tempUnit, speedUnit } = useUnits();
+  const animatedTemp = useCountUp(observation.temperatureC, 700);
 
   return (
     <div className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
@@ -31,7 +33,7 @@ export function WeatherCard({ observation }: { observation: WeatherObservation }
 
       <div>
         <p className="stat-block__label">気温</p>
-        <p className="stat-block__value">{formatTemp(observation.temperatureC, tempUnit)}</p>
+        <p className="stat-block__value">{formatTemp(animatedTemp, tempUnit)}</p>
         <p className="stat-block__meta" style={{ margin: 0 }}>
           体感 {formatTemp(observation.apparentTemperatureC, tempUnit)}
         </p>
