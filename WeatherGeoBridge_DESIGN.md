@@ -9,6 +9,10 @@
 
 ---
 
+**更新履歴ノート(2026-09-05、実装後の変更)**: Phase1・Phase4のバックエンドは当初本書の通りPython(`core/`・`cache/`・`server/`)で実装したが、「自分のPCや別サーバーを保持し続けたくない」というユーザー要望を受け、天気取得・KVキャッシュ・差分通知・Web Push送信・REST APIを**Cloudflare Workers(TypeScript、`worker/`)+ Workers KV**へ移行した(Python版の`core/`・`cache/`・`notifications/`・`server/`は削除済み)。フロントエンド(Next.js)はCloudflare公式のNext.js用アダプタが非推奨のため、そのままVercelでの公開を継続している。Phase5のMCPサーバー(`mcp_server/`)はPythonのまま残しているが、内部実装はWorkerの公開REST APIをHTTP経由で呼ぶだけの薄いクライアントに変更した。以降のPhase1〜5本文はPython実装当時の記述のままだが、ロジック・スキーマ・エンドポイント設計自体は変更していないため、実装言語の read replace として読み替えること。詳細は[README.md](README.md)を参照。
+
+---
+
 ## Phase 0: コンセプト・要件定義
 
 ### 目的

@@ -3,14 +3,16 @@ __pycache__/
 .venv/
 venv/
 
-data/
-logs/
-
 web/node_modules/
 web/.next/
 web/env.local
 web/.env.local
 web/next-env.d.ts
+
+worker/node_modules/
+worker/.wrangler/
+worker/.dev.vars
+worker/worker-configuration.d.ts
 
 *.pmtiles
 

@@ -2,50 +2,63 @@
 """WeatherGeoBridge MCPサーバー(WeatherGeoBridge_DESIGN.md Phase5)。
 
 stateless設計: セッションIDを持たず、各tool呼び出しは引数(lat/lon/days/api_key)
-のみで完結する。内部実装はcore/・cache/をPhase4のREST APIと共有し、
-天気取得ロジックを重複実装しない(同一プロセス内呼び出し)。
+のみで完結する。天気取得ロジックは自前実装せず、Cloudflare Workers上の
+REST API(worker/)をHTTP経由で呼び出すだけの薄いクライアントとする
+(Phase5設計の「同一プロセス内呼び出しでも可」の代わりに、実際に稼働する
+公開REST APIを呼ぶ構成に統一し、ロジックの二重実装を避ける)。
 
-認証: stdioトランスポートにはHTTPヘッダが存在しないため、Phase4と同じ
-X-API-Key方式を「各tool引数にapi_keyを必須化しserver.auth.is_valid_keyで
-照合する」形で踏襲する。HTTPトランスポートに切り替える場合はこの
-api_key引数チェックをリクエストヘッダ検証に置き換えるだけでよい。
+認証: 各tool呼び出しの`api_key`引数をそのままWorker側への`X-API-Key`
+ヘッダとして転送する。Workerと同じ認証方式を踏襲している。
 
 Usage:
-    python -m mcp_server.server
+    WEATHERGEOBRIDGE_WORKER_URL=https://<worker>.workers.dev python -m mcp_server.server
 """
 
 from __future__ import annotations
 
-from mcp.server.mcpserver import MCPServer
+import json
+import os
+import urllib.error
+import urllib.parse
+import urllib.request
 
-from cache.weather_cache import default_cache
-from core import weather_client
-from core.weather_normalizer import normalize_forecast
-from server.auth import is_valid_key
+from mcp.server.mcpserver import MCPServer
 
 mcp = MCPServer("WeatherGeoBridge")
 
+_WORKER_URL = os.environ.get("WEATHERGEOBRIDGE_WORKER_URL", "http://localhost:8788").rstrip("/")
 
-def _check_api_key(api_key: str) -> None:
-    if not is_valid_key(api_key):
-        raise PermissionError("X-API-Key相当の認証に失敗しました(api_keyが不正です)。")
+
+def _get(path: str, params: dict, api_key: str) -> dict:
+    url = f"{_WORKER_URL}{path}?{urllib.parse.urlencode(params)}"
+    # Cloudflareのボット対策(bot fight mode等)がデフォルトの
+    # "Python-urllib/x.y" User-Agentを遮断する(HTTP 403 / error 1010)ため、
+    # 素性を明示した固有のUser-Agentを送る。
+    req = urllib.request.Request(
+        url,
+        headers={"X-API-Key": api_key, "User-Agent": "WeatherGeoBridge-MCP/1.0"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        if exc.code == 401:
+            raise PermissionError("X-API-Keyの認証に失敗しました(api_keyが不正です)。") from exc
+        raise RuntimeError(f"Workerがエラーを返しました: {exc.code} {exc.read().decode(errors='replace')}") from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(f"Workerへの接続に失敗しました: {exc}") from exc
 
 
 @mcp.tool()
 def get_weather(lat: float, lon: float, api_key: str = "") -> dict:
     """指定した緯度経度の現在の天気を取得する。"""
-    _check_api_key(api_key)
-    observation = default_cache.get_or_fetch(lat, lon)
-    return observation.to_dict()
+    return _get("/api/weather", {"lat": lat, "lon": lon}, api_key)
 
 
 @mcp.tool()
 def get_forecast(lat: float, lon: float, days: int = 3, api_key: str = "") -> dict:
     """指定した緯度経度の数日先までの予報を取得する(daysは1〜16)。"""
-    _check_api_key(api_key)
-    raw = weather_client.fetch_forecast(lat, lon, days)
-    forecast = normalize_forecast(raw, lat, lon)
-    return forecast.to_dict()
+    return _get("/api/weather/forecast", {"lat": lat, "lon": lon, "days": days}, api_key)
 
 
 if __name__ == "__main__":
