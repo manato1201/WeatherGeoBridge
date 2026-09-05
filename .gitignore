@@ -16,3 +16,6 @@ web/next-env.d.ts
 
 # ローカル参照用のデザイン/実装スキル資料。プロジェクト成果物ではないためコミットしない。
 web-production-skill/
+
+.vercel
+.env*
