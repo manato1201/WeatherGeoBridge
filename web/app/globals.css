@@ -55,6 +55,32 @@
   --page-max-width: 1280px;
 }
 
+/* システム設定がダークで、かつ明示的にライトへ切り替えていない場合 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-canvas: #0a0a0a;
+    --color-paper: #1c1c1c;
+    --color-surface-alt: #141414;
+    --color-ink: #fafafa;
+    --color-ink-soft: #e5e5e5;
+    --color-mid-gray: #a1a1a1;
+    --color-hairline: #2a2a2a;
+    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+}
+
+/* 明示的にダークへ切り替えた場合(システム設定に関わらず優先) */
+:root[data-theme="dark"] {
+  --color-canvas: #0a0a0a;
+  --color-paper: #1c1c1c;
+  --color-surface-alt: #141414;
+  --color-ink: #fafafa;
+  --color-ink-soft: #e5e5e5;
+  --color-mid-gray: #a1a1a1;
+  --color-hairline: #2a2a2a;
+  --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
 * {
   box-sizing: border-box;
 }

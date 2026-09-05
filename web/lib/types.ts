@@ -48,7 +48,19 @@ export interface Forecast {
   hourly: HourlyPoint[];
 }
 
-export type LocationSource = "browser_gps" | "manual_pin" | "game_avatar_position";
+export interface AirQuality {
+  lat: number;
+  lon: number;
+  observedAt: string;
+  pm2_5: number;
+  pm10: number;
+  europeanAqi: number;
+  usAqi: number;
+  uvIndex: number;
+}
+
+export type LocationSource =
+  "browser_gps" | "manual_pin" | "game_avatar_position";
 
 export interface LocationContext {
   lat: number;

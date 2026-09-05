@@ -48,6 +48,24 @@ export interface Forecast {
   hourly: HourlyPoint[];
 }
 
+export interface AirQuality {
+  lat: number;
+  lon: number;
+  observedAt: string;
+  pm2_5: number;
+  pm10: number;
+  europeanAqi: number;
+  usAqi: number;
+  uvIndex: number;
+}
+
+// Web Push通知の条件(ユーザーがNotificationOptInで設定する)。
+// 未指定時は既定値(降水通知あり・気温急変±5℃)で動作する。
+export interface NotificationPreferences {
+  notifyPrecipitation: boolean;
+  temperatureSwingThresholdC: number;
+}
+
 export interface Env {
   WEATHER_CACHE: KVNamespace;
   PUSH_SUBSCRIPTIONS: KVNamespace;

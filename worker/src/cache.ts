@@ -8,8 +8,8 @@
 // (でなければ直前値が消えて差分アラートが発火しなくなる)ため、起動時に検証する。
 
 import type { ExecutionContext } from "hono";
-import { checkAlerts } from "./alerts";
-import { sendAlertsToAllSubscriptions } from "./push";
+import { computeDiff } from "./alerts";
+import { sendDiffToAllSubscriptions } from "./push";
 import type { Env, WeatherObservation } from "./types";
 import { fetchCurrentObservation } from "./weather";
 
@@ -66,9 +66,9 @@ export async function getOrFetchWeather(
         expirationTtl: KV_ENTRY_EXPIRATION_SECONDS,
       });
 
-      const alerts = checkAlerts(entry?.observation ?? null, observation);
-      if (alerts.length > 0) {
-        await sendAlertsToAllSubscriptions(env, alerts);
+      const diff = computeDiff(entry?.observation ?? null, observation);
+      if (diff) {
+        await sendDiffToAllSubscriptions(env, diff);
       }
     })(),
   );
