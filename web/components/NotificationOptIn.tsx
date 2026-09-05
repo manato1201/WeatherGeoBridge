@@ -53,11 +53,34 @@ export function NotificationOptIn() {
   }
 
   return (
-    <div>
-      <button onClick={subscribe} type="button" disabled={status === "working" || status === "subscribed"}>
-        {status === "subscribed" ? "通知購読済み" : "降水・気温急変の通知を受け取る"}
-      </button>
-      {message && <p style={{ color: "crimson", fontSize: 12 }}>{message}</p>}
+    <div className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-12)" }}>
+        <div>
+          <p className="section__heading" style={{ fontSize: "var(--text-body-lg)" }}>
+            通知
+          </p>
+          <p className="text-muted" style={{ fontSize: "var(--text-caption)", margin: 0 }}>
+            降水開始・気温急変(±5℃)をWeb Pushで通知します
+          </p>
+        </div>
+        {status === "subscribed" ? (
+          <span className="badge badge--solid">購読済み</span>
+        ) : (
+          <button
+            className="btn btn--secondary"
+            onClick={subscribe}
+            type="button"
+            disabled={status === "working"}
+          >
+            通知を受け取る
+          </button>
+        )}
+      </div>
+      {message && (
+        <p className="text-destructive" style={{ fontSize: "var(--text-caption)", margin: 0 }}>
+          {message}
+        </p>
+      )}
     </div>
   );
 }

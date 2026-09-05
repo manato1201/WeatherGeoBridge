@@ -48,28 +48,47 @@ export function LocationPicker({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <button onClick={useBrowserGps} type="button">
-        現在地を取得
-      </button>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <input
-          aria-label="緯度"
-          value={manualLat}
-          onChange={(e) => setManualLat(e.target.value)}
-          style={{ width: 100 }}
-        />
-        <input
-          aria-label="経度"
-          value={manualLon}
-          onChange={(e) => setManualLon(e.target.value)}
-          style={{ width: 100 }}
-        />
-        <button onClick={useManualPin} type="button">
+    <div className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
+      <div className="section" style={{ gap: "var(--space-8)" }}>
+        <p className="section__heading">地点</p>
+        <button className="btn btn--primary" onClick={useBrowserGps} type="button">
+          現在地を取得
+        </button>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
+        <div className="field">
+          <label className="field__label" htmlFor="loc-lat">
+            緯度
+          </label>
+          <input
+            id="loc-lat"
+            className="input"
+            value={manualLat}
+            onChange={(e) => setManualLat(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label className="field__label" htmlFor="loc-lon">
+            経度
+          </label>
+          <input
+            id="loc-lon"
+            className="input"
+            value={manualLon}
+            onChange={(e) => setManualLon(e.target.value)}
+          />
+        </div>
+        <button className="btn btn--outline" onClick={useManualPin} type="button">
           手動ピン留め
         </button>
       </div>
-      {error && <p style={{ color: "crimson", margin: 0 }}>{error}</p>}
+
+      {error && (
+        <p className="text-destructive" style={{ fontSize: "var(--text-caption)", margin: 0 }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

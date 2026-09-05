@@ -87,9 +87,9 @@ export function MapView({
         source: WEATHER_SOURCE_ID,
         paint: {
           "circle-radius": 8,
-          "circle-color": "#2b6cb0",
+          "circle-color": "#0a0a0a",
           "circle-stroke-width": 2,
-          "circle-stroke-color": "#fff",
+          "circle-stroke-color": "#ffffff",
         },
       });
     };
@@ -102,24 +102,23 @@ export function MapView({
   }, [observation]);
 
   return (
-    <div style={{ position: "relative", width: "100%", height: 400 }}>
-      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
-      {tileLoadFailed && (
-        <div
-          style={{
-            position: "absolute",
-            top: 8,
-            left: 8,
-            background: "rgba(255,255,255,0.9)",
-            padding: "4px 8px",
-            borderRadius: 4,
-            fontSize: 12,
-          }}
-        >
-          地図タイル(PMTiles)が未配置です。web/public/map/README.md
-          を参照してください。
-        </div>
-      )}
+    <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+      <div style={{ position: "relative", width: "100%", height: 400 }}>
+        <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+        {tileLoadFailed && (
+          <div
+            className="badge badge--soft"
+            style={{
+              position: "absolute",
+              top: "var(--space-12)",
+              left: "var(--space-12)",
+              maxWidth: "calc(100% - 24px)",
+            }}
+          >
+            地図タイル(PMTiles)が未配置です。web/public/map/README.md を参照してください。
+          </div>
+        )}
+      </div>
     </div>
   );
 }
