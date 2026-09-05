@@ -1,7 +1,12 @@
+"use client";
+
 import type { AirQuality } from "@/lib/types";
 import { europeanAqiLabel } from "@/lib/airQuality";
+import { useCountUp } from "@/lib/useCountUp";
 
 export function AirQualityCard({ airQuality }: { airQuality: AirQuality }) {
+  const animatedAqi = useCountUp(airQuality.europeanAqi, 700);
+
   return (
     <div
       className="card"
@@ -26,7 +31,7 @@ export function AirQualityCard({ airQuality }: { airQuality: AirQuality }) {
         </span>
       </div>
       <p className="stat-block__value" style={{ margin: 0 }}>
-        {airQuality.europeanAqi}
+        {Math.round(animatedAqi)}
       </p>
       <div
         style={{
