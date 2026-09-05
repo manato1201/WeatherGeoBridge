@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AirQualityCard } from "@/components/AirQualityCard";
 import { ForecastList } from "@/components/ForecastList";
 import { HourlyStrip } from "@/components/HourlyStrip";
+import { LiveClock } from "@/components/LiveClock";
 import { LocationPicker } from "@/components/LocationPicker";
 import { MapView } from "@/components/MapView";
 import { NotificationOptIn } from "@/components/NotificationOptIn";
@@ -135,10 +136,20 @@ export default function Page() {
           <p className="app-header__subtitle">天気の取得・通知・地図閲覧</p>
         </div>
         <div
-          style={{ display: "flex", gap: "var(--space-8)", flexWrap: "wrap" }}
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "var(--space-24)",
+            flexWrap: "wrap",
+          }}
         >
-          <UnitToggle />
-          <ThemeToggle />
+          <LiveClock />
+          <div
+            style={{ display: "flex", gap: "var(--space-8)", flexWrap: "wrap" }}
+          >
+            <UnitToggle />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
