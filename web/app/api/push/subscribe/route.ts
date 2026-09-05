@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BackendError, submitPushSubscription } from "@/lib/backend";
+import { submitPushSubscription, toErrorResponse } from "@/lib/backend";
 
 export async function POST(req: NextRequest) {
-  const subscription = await req.json();
+  let subscription: unknown;
+  try {
+    subscription = await req.json();
+  } catch {
+    return NextResponse.json({ error: "リクエストボディが不正なJSONです" }, { status: 400 });
+  }
 
   try {
     await submitPushSubscription(subscription);
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (err) {
-    if (err instanceof BackendError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
-    return NextResponse.json(
-      { error: "購読登録に失敗しました" },
-      { status: 502 },
-    );
+    return toErrorResponse(err, "購読登録に失敗しました");
   }
 }

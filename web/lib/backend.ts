@@ -1,9 +1,11 @@
-// Next.js API RouteからPython REST APIサーバー(server/api_server.py)を叩く
-// server-sideヘルパー。WEATHERGEOBRIDGE_API_KEYはここでのみ扱い、
-// ブラウザには絶対に渡さない。
+// Next.js API RouteからCloudflare Worker(worker/)を叩くserver-sideヘルパー。
+// WEATHERGEOBRIDGE_API_KEYはここでのみ扱い、ブラウザには絶対に渡さない。
 
-const BASE_URL =
-  process.env.WEATHERGEOBRIDGE_API_BASE_URL ?? "http://localhost:8787";
+import { NextResponse } from "next/server";
+
+// Worker側のローカル開発は `wrangler dev --port 8788`(README参照)なので、
+// 未設定時のデフォルトもそれに合わせる。
+const BASE_URL = process.env.WEATHERGEOBRIDGE_API_BASE_URL ?? "http://localhost:8788";
 const API_KEY = process.env.WEATHERGEOBRIDGE_API_KEY ?? "";
 
 export class BackendError extends Error {
@@ -15,10 +17,7 @@ export class BackendError extends Error {
   }
 }
 
-async function backendFetch(
-  path: string,
-  init?: RequestInit,
-): Promise<Response> {
+async function backendFetch(path: string, init?: RequestInit): Promise<Response> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
@@ -28,11 +27,20 @@ async function backendFetch(
     cache: "no-store",
   });
   if (!res.ok) {
-    const body = await res.text();
-    throw new BackendError(
-      res.status,
-      body || `backend responded with ${res.status}`,
-    );
+    // Workerのエラーレスポンスは常に {"error": "..."} 形式のJSON。生のJSON文字列
+    // をそのままメッセージにすると、フロント側でエスケープされたJSONがそのまま
+    // ユーザーに表示されてしまうため、必ずerrorフィールドを取り出す。
+    const bodyText = await res.text();
+    let message = bodyText || `backend responded with ${res.status}`;
+    try {
+      const parsed = JSON.parse(bodyText);
+      if (parsed && typeof parsed.error === "string") {
+        message = parsed.error;
+      }
+    } catch {
+      // JSONでなければ生テキストのまま使う。
+    }
+    throw new BackendError(res.status, message);
   }
   return res;
 }
@@ -60,4 +68,13 @@ export async function submitPushSubscription(subscription: unknown) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(subscription),
   });
+}
+
+// Next.js API Route側の共通catchハンドラ。BackendErrorはWorkerが返した
+// ステータス/メッセージをそのまま転送し、それ以外(接続失敗等)は502にする。
+export function toErrorResponse(err: unknown, fallbackMessage: string): NextResponse {
+  if (err instanceof BackendError) {
+    return NextResponse.json({ error: err.message }, { status: err.status });
+  }
+  return NextResponse.json({ error: fallbackMessage }, { status: 502 });
 }
