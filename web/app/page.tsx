@@ -25,37 +25,37 @@ export default function Page() {
   useEffect(() => {
     if (!location) return;
 
-    let cancelled = false;
+    // AbortControllerで実際にリクエストをキャンセルする(単にstate更新を
+    // 無視するだけのフラグ方式だと、地点を素早く切り替えた際に不要になった
+    // Open-Meteoへのリクエストがバックグラウンドで走り続けてしまう)。
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
 
     Promise.all([
-      fetch(`/api/weather?lat=${location.lat}&lon=${location.lon}`).then((r) =>
-        r.json(),
-      ),
-      fetch(
-        `/api/weather/forecast?lat=${location.lat}&lon=${location.lon}&days=5`,
-      ).then((r) => r.json()),
+      fetch(`/api/weather?lat=${location.lat}&lon=${location.lon}`, {
+        signal: controller.signal,
+      }).then((r) => r.json()),
+      fetch(`/api/weather/forecast?lat=${location.lat}&lon=${location.lon}&days=5`, {
+        signal: controller.signal,
+      }).then((r) => r.json()),
     ])
       .then(([weatherData, forecastData]) => {
-        if (cancelled) return;
         if (weatherData.error) throw new Error(weatherData.error);
         if (forecastData.error) throw new Error(forecastData.error);
         setObservation(weatherData);
         setForecast(forecastData);
       })
       .catch((err) => {
-        if (!cancelled)
-          setError(
-            err instanceof Error ? err.message : "天気の取得に失敗しました",
-          );
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setError(err instanceof Error ? err.message : "天気の取得に失敗しました");
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       });
 
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [location]);
 

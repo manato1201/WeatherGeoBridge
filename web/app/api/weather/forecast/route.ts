@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BackendError, fetchForecast } from "@/lib/backend";
+import { fetchForecast, toErrorResponse } from "@/lib/backend";
+import { parseLatLon } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const lat = Number(searchParams.get("lat"));
-  const lon = Number(searchParams.get("lon"));
-  const days = Number(searchParams.get("days") ?? "3");
+  const latlon = parseLatLon(searchParams.get("lat"), searchParams.get("lon"));
+  const daysRaw = searchParams.get("days");
+  const days = daysRaw === null ? 3 : Number(daysRaw);
 
-  if (Number.isNaN(lat) || Number.isNaN(lon)) {
+  if (!latlon) {
     return NextResponse.json({ error: "lat/lonは必須です" }, { status: 400 });
+  }
+  if (!Number.isFinite(days) || days < 1 || days > 16) {
+    return NextResponse.json({ error: "daysは1〜16の整数で指定してください" }, { status: 400 });
   }
 
   try {
-    const data = await fetchForecast(lat, lon, days);
+    const data = await fetchForecast(latlon.lat, latlon.lon, days);
     return NextResponse.json(data);
   } catch (err) {
-    if (err instanceof BackendError) {
-      return NextResponse.json({ error: err.message }, { status: err.status });
-    }
-    return NextResponse.json({ error: "予報の取得に失敗しました" }, { status: 502 });
+    return toErrorResponse(err, "予報の取得に失敗しました");
   }
 }
