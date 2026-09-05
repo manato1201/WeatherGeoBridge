@@ -3,6 +3,7 @@
 // スキーマ上のwindSpeedMs(m/s)と単位が食い違うため、必ず指定すること。
 
 import type {
+  AirQuality,
   Forecast,
   ForecastDay,
   HourlyPoint,
@@ -10,6 +11,7 @@ import type {
 } from "./types";
 
 const BASE_URL = "https://api.open-meteo.com/v1/forecast";
+const AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
 
 const CURRENT_PARAMS = [
   "temperature_2m",
@@ -59,8 +61,11 @@ export class WeatherClientError extends Error {
   }
 }
 
-async function get(params: Record<string, string>): Promise<any> {
-  const url = new URL(BASE_URL);
+async function get(
+  baseUrl: string,
+  params: Record<string, string>,
+): Promise<any> {
+  const url = new URL(baseUrl);
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, value);
   }
@@ -84,7 +89,7 @@ export async function fetchCurrentObservation(
   lat: number,
   lon: number,
 ): Promise<WeatherObservation> {
-  const raw = await get({
+  const raw = await get(BASE_URL, {
     latitude: String(lat),
     longitude: String(lon),
     current: CURRENT_PARAMS,
@@ -117,7 +122,7 @@ export async function fetchForecast(
   days: number,
 ): Promise<Forecast> {
   const clampedDays = Math.max(1, Math.min(16, days));
-  const raw = await get({
+  const raw = await get(BASE_URL, {
     latitude: String(lat),
     longitude: String(lon),
     daily: DAILY_PARAMS,
@@ -163,4 +168,35 @@ export async function fetchForecast(
     .slice(0, 24);
 
   return { lat, lon, daily: days_, hourly: hourlyPoints };
+}
+
+const AIR_QUALITY_PARAMS = [
+  "pm10",
+  "pm2_5",
+  "european_aqi",
+  "us_aqi",
+  "uv_index",
+].join(",");
+
+export async function fetchAirQuality(
+  lat: number,
+  lon: number,
+): Promise<AirQuality> {
+  const raw = await get(AIR_QUALITY_URL, {
+    latitude: String(lat),
+    longitude: String(lon),
+    current: AIR_QUALITY_PARAMS,
+    timezone: "Asia/Tokyo",
+  });
+  const cur = raw.current;
+  return {
+    lat,
+    lon,
+    observedAt: cur.time,
+    pm2_5: cur.pm2_5,
+    pm10: cur.pm10,
+    europeanAqi: cur.european_aqi,
+    usAqi: cur.us_aqi,
+    uvIndex: cur.uv_index,
+  };
 }

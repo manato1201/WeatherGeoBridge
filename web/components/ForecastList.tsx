@@ -1,4 +1,8 @@
+"use client";
+
 import type { Forecast } from "@/lib/types";
+import { useUnits } from "@/lib/UnitsContext";
+import { formatSpeed, formatTempInt } from "@/lib/units";
 import { iconFor, labelFor } from "@/lib/weatherCode";
 
 function formatTime(iso: string): string {
@@ -6,6 +10,8 @@ function formatTime(iso: string): string {
 }
 
 export function ForecastList({ forecast }: { forecast: Forecast }) {
+  const { tempUnit, speedUnit } = useUnits();
+
   return (
     <div className="forecast-row">
       {forecast.daily.map((day) => (
@@ -24,7 +30,8 @@ export function ForecastList({ forecast }: { forecast: Forecast }) {
             {iconFor(day.weatherCode)}
           </div>
           <p style={{ margin: 0, fontWeight: 500 }}>
-            {day.tempMinC.toFixed(0)}° / {day.tempMaxC.toFixed(0)}°
+            {formatTempInt(day.tempMinC, tempUnit)} /{" "}
+            {formatTempInt(day.tempMaxC, tempUnit)}
           </p>
           <p className="text-caption" style={{ margin: 0 }}>
             {labelFor(day.weatherCode)}
@@ -35,7 +42,7 @@ export function ForecastList({ forecast }: { forecast: Forecast }) {
           </p>
           <p className="text-caption" style={{ margin: 0 }}>
             UV指数 {day.uvIndexMax.toFixed(1)} / 最大風速{" "}
-            {day.windSpeedMaxMs.toFixed(1)}m/s
+            {formatSpeed(day.windSpeedMaxMs, speedUnit)}
           </p>
           <p className="text-caption" style={{ margin: 0 }}>
             日出 {formatTime(day.sunrise)} 日没 {formatTime(day.sunset)}
