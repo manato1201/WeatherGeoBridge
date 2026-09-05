@@ -1,3 +1,4 @@
+import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#12130f",
 };
 
 // data-theme属性を初回ペイント前に設定し、暗い設定を保存済みのユーザーで
@@ -36,7 +37,7 @@ const THEME_INIT_SCRIPT = `
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="ja" className={GeistSans.variable}>
+    <html lang="ja" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body>
         <Script id="theme-init" strategy="beforeInteractive">
           {THEME_INIT_SCRIPT}
