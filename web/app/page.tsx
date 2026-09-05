@@ -7,11 +7,21 @@ import { HourlyStrip } from "@/components/HourlyStrip";
 import { LocationPicker } from "@/components/LocationPicker";
 import { MapView } from "@/components/MapView";
 import { NotificationOptIn } from "@/components/NotificationOptIn";
+import { CloudCoverOrb } from "@/components/telemetry/CloudCoverOrb";
+import { PrecipitationCluster } from "@/components/telemetry/PrecipitationCluster";
+import { PressureCompass } from "@/components/telemetry/PressureCompass";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { TrendChart } from "@/components/TrendChart";
 import { UnitToggle } from "@/components/UnitToggle";
 import { WeatherCard } from "@/components/WeatherCard";
-import type { AirQuality, Forecast, LocationContext, WeatherObservation } from "@/lib/types";
+import type {
+  AirQuality,
+  Forecast,
+  LocationContext,
+  WeatherObservation,
+} from "@/lib/types";
+import { useUnits } from "@/lib/UnitsContext";
+import { formatSpeed } from "@/lib/units";
 
 function locationFromUrl(): LocationContext | null {
   if (typeof window === "undefined") return null;
@@ -31,13 +41,16 @@ function syncLocationToUrl(location: LocationContext) {
 
 export default function Page() {
   const [location, setLocation] = useState<LocationContext | null>(null);
-  const [observation, setObservation] = useState<WeatherObservation | null>(null);
+  const [observation, setObservation] = useState<WeatherObservation | null>(
+    null,
+  );
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const { speedUnit } = useUnits();
 
   // 初回マウント時にURLの?lat=&lon=があれば復元する(共有・ブックマーク用)。
   useEffect(() => {
@@ -64,13 +77,18 @@ export default function Page() {
     setError(null);
 
     Promise.all([
-      fetch(`/api/weather?lat=${location.lat}&lon=${location.lon}`, { signal: controller.signal }).then((r) =>
-        r.json(),
-      ),
-      fetch(`/api/weather/forecast?lat=${location.lat}&lon=${location.lon}&days=5`, {
+      fetch(`/api/weather?lat=${location.lat}&lon=${location.lon}`, {
         signal: controller.signal,
       }).then((r) => r.json()),
-      fetch(`/api/air-quality?lat=${location.lat}&lon=${location.lon}`, { signal: controller.signal })
+      fetch(
+        `/api/weather/forecast?lat=${location.lat}&lon=${location.lon}&days=5`,
+        {
+          signal: controller.signal,
+        },
+      ).then((r) => r.json()),
+      fetch(`/api/air-quality?lat=${location.lat}&lon=${location.lon}`, {
+        signal: controller.signal,
+      })
         .then((r) => r.json())
         .catch(() => null),
     ])
@@ -79,12 +97,16 @@ export default function Page() {
         if (forecastData.error) throw new Error(forecastData.error);
         setObservation(weatherData);
         setForecast(forecastData);
-        setAirQuality(airQualityData && !airQualityData.error ? airQualityData : null);
+        setAirQuality(
+          airQualityData && !airQualityData.error ? airQualityData : null,
+        );
         setLastUpdated(new Date());
       })
       .catch((err) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        setError(err instanceof Error ? err.message : "天気の取得に失敗しました");
+        setError(
+          err instanceof Error ? err.message : "天気の取得に失敗しました",
+        );
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -99,13 +121,22 @@ export default function Page() {
     <main className="page-shell">
       <header
         className="app-header"
-        style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", display: "flex" }}
+        style={{
+          flexDirection: "row",
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          display: "flex",
+          gap: "var(--space-16)",
+        }}
       >
-        <div>
+        <div style={{ minWidth: 0 }}>
           <h1 className="app-header__title">WeatherGeoBridge</h1>
           <p className="app-header__subtitle">天気の取得・通知・地図閲覧</p>
         </div>
-        <div style={{ display: "flex", gap: "var(--space-8)", flexWrap: "wrap" }}>
+        <div
+          style={{ display: "flex", gap: "var(--space-8)", flexWrap: "wrap" }}
+        >
           <UnitToggle />
           <ThemeToggle />
         </div>
@@ -115,16 +146,29 @@ export default function Page() {
         <LocationPicker location={location} onChange={handleLocationChange} />
 
         <div className="section">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-8)" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "var(--space-8)",
+            }}
+          >
             <div>
-              {loading && <p className="text-muted" style={{ margin: 0 }}>読み込み中...</p>}
+              {loading && (
+                <p className="text-muted" style={{ margin: 0 }}>
+                  読み込み中...
+                </p>
+              )}
               {error && (
                 <p className="text-destructive" style={{ margin: 0 }}>
                   {error}
                 </p>
               )}
               {!location && !loading && !error && (
-                <p className="text-muted" style={{ margin: 0 }}>左のパネルから地点を選択してください。</p>
+                <p className="text-muted" style={{ margin: 0 }}>
+                  左のパネルから地点を選択してください。
+                </p>
               )}
               {lastUpdated && !loading && (
                 <p className="text-caption" style={{ margin: 0 }}>
@@ -181,9 +225,48 @@ export default function Page() {
         </div>
       </div>
 
+      {observation && (
+        <div className="section">
+          <div>
+            <p className="section__heading">気象テレメトリー</p>
+            <p className="text-caption" style={{ margin: 0 }}>
+              雨雲レーダー・天気図・気象衛星の実画像は使用していません(気象庁の非公式エンドポイントに依存するリスクを避けるため)。以下は現在の観測データに基づく独自のビジュアライゼーションです。
+            </p>
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: "var(--space-16)",
+            }}
+          >
+            {forecast && <PrecipitationCluster hourly={forecast.hourly} />}
+            <PressureCompass
+              pressureHpa={observation.surfacePressureHpa}
+              windDirectionDeg={observation.windDirectionDeg}
+              windSpeedLabel={formatSpeed(observation.windSpeedMs, speedUnit)}
+            />
+            <CloudCoverOrb
+              cloudCoverPercent={observation.cloudCoverPercent}
+              isDay={observation.isDay}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="section">
         <p className="section__heading">地図(クリックで地点を選択できます)</p>
-        <MapView observation={observation} onPick={(lat, lon) => handleLocationChange({ lat, lon, accuracyMeters: null, source: "manual_pin" })} />
+        <MapView
+          observation={observation}
+          onPick={(lat, lon) =>
+            handleLocationChange({
+              lat,
+              lon,
+              accuracyMeters: null,
+              source: "manual_pin",
+            })
+          }
+        />
       </div>
 
       <NotificationOptIn />
