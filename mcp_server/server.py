@@ -29,6 +29,19 @@ mcp = MCPServer("WeatherGeoBridge")
 _WORKER_URL = os.environ.get("WEATHERGEOBRIDGE_WORKER_URL", "http://localhost:8788").rstrip("/")
 
 
+class WorkerError(RuntimeError):
+    """WorkerがエラーレスポンスやHTTPエラーを返した場合の例外。
+
+    呼び出し元(MCPクライアント)がstatus_codeで入力不備(4xx、修正して再試行
+    すべき)と上流障害(5xx、リトライすべき)を区別できるよう、ステータス
+    コードを構造化して保持する(一律RuntimeErrorに潰さない)。
+    """
+
+    def __init__(self, message: str, status_code: int | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+
+
 def _get(path: str, params: dict, api_key: str) -> dict:
     url = f"{_WORKER_URL}{path}?{urllib.parse.urlencode(params)}"
     # Cloudflareのボット対策(bot fight mode等)がデフォルトの
@@ -44,9 +57,14 @@ def _get(path: str, params: dict, api_key: str) -> dict:
     except urllib.error.HTTPError as exc:
         if exc.code == 401:
             raise PermissionError("X-API-Keyの認証に失敗しました(api_keyが不正です)。") from exc
-        raise RuntimeError(f"Workerがエラーを返しました: {exc.code} {exc.read().decode(errors='replace')}") from exc
+        body = exc.read().decode(errors="replace")
+        try:
+            message = json.loads(body).get("error", body)
+        except json.JSONDecodeError:
+            message = body
+        raise WorkerError(f"Workerがエラーを返しました({exc.code}): {message}", status_code=exc.code) from exc
     except urllib.error.URLError as exc:
-        raise RuntimeError(f"Workerへの接続に失敗しました: {exc}") from exc
+        raise WorkerError(f"Workerへの接続に失敗しました: {exc}") from exc
 
 
 @mcp.tool()

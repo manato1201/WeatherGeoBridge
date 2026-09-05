@@ -46,7 +46,18 @@ const HOURLY_PARAMS = [
   "weather_code",
 ].join(",");
 
-export class WeatherClientError extends Error {}
+export class WeatherClientError extends Error {
+  // Open-Meteoが返した実際のHTTPステータス(接続失敗時はundefined)。
+  // 呼び出し元(index.ts)がこれを見て、4xx(呼び出し側の入力不備)と
+  // それ以外(上流障害)を区別してレスポンスコードを決められるようにする。
+  status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = "WeatherClientError";
+    this.status = status;
+  }
+}
 
 async function get(params: Record<string, string>): Promise<any> {
   const url = new URL(BASE_URL);
@@ -60,8 +71,10 @@ async function get(params: Record<string, string>): Promise<any> {
     throw new WeatherClientError(`Open-Meteoへの接続に失敗しました: ${err}`);
   }
   if (!res.ok) {
+    const body = await res.text().catch(() => "");
     throw new WeatherClientError(
-      `Open-Meteoがエラーを返しました: ${res.status}`,
+      `Open-Meteoがエラーを返しました: ${res.status} ${body}`.trim(),
+      res.status,
     );
   }
   return res.json();
