@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+data/
+logs/
+
+web/node_modules/
+web/.next/
+web/env.local
+web/.env.local
+web/next-env.d.ts
+
+*.pmtiles
+
+# ローカル参照用のデザイン/実装スキル資料。プロジェクト成果物ではないためコミットしない。
+web-production-skill/

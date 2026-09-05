@@ -1,0 +1,17 @@
+{
+  "version": 8,
+  "name": "WeatherGeoBridge Base",
+  "sources": {
+    "japan": {
+      "type": "vector",
+      "url": "pmtiles:///map/japan.pmtiles"
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": { "background-color": "#eef3f8" }
+    }
+  ]
+}
