@@ -1,21 +1,35 @@
-/* WeatherGeoBridge デザイントークン(shadcn/ui系モノクローム、ConsoleDESIGN.md準拠) */
+/* WeatherGeoBridge デザイントークン。
+   ベースはダーク優先の「エンジニアのターミナル」系(暖色オフホワイト文字+漆黒背景+
+   モノスペースのテレメトリーラベル)。ただし本アプリは情報量の多いダッシュボードの
+   ため、参考スタイル(ポートフォリオサイト向け・カードなし・全画面エッジ配置)の
+   思想(パレット・タイポグラフィ・余白・フラットな質感)は取り入れつつ、
+   カード/パネルによる情報のグルーピングは維持している。 */
 :root {
-  --color-canvas: #f5f5f5;
-  --color-paper: #ffffff;
-  --color-surface-alt: #fafafa;
-  --color-ink: #0a0a0a;
-  --color-ink-soft: #171717;
-  --color-mid-gray: #737373;
-  --color-hairline: #e5e5e5;
+  /* ネイティブのチェックボックス・input[type=number]のスピナー等をダーク
+     テーマに追従させる。ライトモードは:root[data-theme="light"]側で上書き。 */
+  color-scheme: dark;
+
+  --color-canvas: #12130f;
+  --color-paper: #1a1b16;
+  --color-surface-alt: #202119;
+  --color-ink: #e4dfda;
+  --color-ink-soft: #f5f2ee;
+  --color-mid-gray: #8a8a82;
+  --color-hairline: #3c3c38;
   --color-ember: #e7000b;
+  /* 3Dテレメトリー要素の縁光専用。UIクロム(ボタン・入力等)には一切使わない。 */
+  --color-accent-glow: #f5c2c8;
 
   --font-sans:
     var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, sans-serif;
+  --font-mono:
+    var(--font-geist-mono), ui-monospace, "SFMono-Regular", Menlo, Consolas,
+    monospace;
 
   --text-caption: 12px;
   --leading-caption: 1.33;
-  --tracking-caption: 0.6px;
+  --tracking-caption: 0.4px;
   --text-body: 14px;
   --leading-body: 1.43;
   --text-body-lg: 16px;
@@ -44,41 +58,42 @@
   --space-48: 48px;
 
   --radius-small: 6px;
-  --radius-nested: 10px;
+  --radius-nested: 8px;
   --radius-pill: 18px;
-  --radius-card: 24px;
+  --radius-card: 12px;
 
-  --shadow-card:
-    0 0 0 1px rgba(23, 23, 23, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1),
-    0 1px 2px -1px rgba(0, 0, 0, 0.1);
+  /* フラット化: 影は落とさず1pxのhairlineのみで縁取る。奥行きは3Dテレメトリー
+     要素だけが担う(参考スタイルの「no box-shadow」原則)。 */
+  --shadow-card: none;
 
   --page-max-width: 1280px;
 }
 
-/* システム設定がダークで、かつ明示的にライトへ切り替えていない場合 */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-canvas: #0a0a0a;
-    --color-paper: #1c1c1c;
-    --color-surface-alt: #141414;
-    --color-ink: #fafafa;
-    --color-ink-soft: #e5e5e5;
-    --color-mid-gray: #a1a1a1;
-    --color-hairline: #2a2a2a;
-    --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06);
+/* システム設定がライトで、かつ明示的にダークへ切り替えていない場合。
+   既定(:root)はダークだが、システムがライトを好むユーザーには自動追従する。 */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --color-canvas: #f5f5f5;
+    --color-paper: #ffffff;
+    --color-surface-alt: #fafafa;
+    --color-ink: #0a0a0a;
+    --color-ink-soft: #171717;
+    --color-mid-gray: #737373;
+    --color-hairline: #e5e5e5;
   }
 }
 
-/* 明示的にダークへ切り替えた場合(システム設定に関わらず優先) */
-:root[data-theme="dark"] {
-  --color-canvas: #0a0a0a;
-  --color-paper: #1c1c1c;
-  --color-surface-alt: #141414;
-  --color-ink: #fafafa;
-  --color-ink-soft: #e5e5e5;
-  --color-mid-gray: #a1a1a1;
-  --color-hairline: #2a2a2a;
-  --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06);
+/* 明示的にライトへ切り替えた場合(システム設定に関わらず優先) */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-canvas: #f5f5f5;
+  --color-paper: #ffffff;
+  --color-surface-alt: #fafafa;
+  --color-ink: #0a0a0a;
+  --color-ink-soft: #171717;
+  --color-mid-gray: #737373;
+  --color-hairline: #e5e5e5;
 }
 
 * {
@@ -89,6 +104,10 @@ html,
 body {
   padding: 0;
   margin: 0;
+  /* ダッシュボード全体で横スクロールを発生させない安全策。個別コンポーネントの
+     はみ出しはflex-wrap/min-width:0側で対処するが、想定外の要素があっても
+     ページ全体がスクロールしないようにする。 */
+  overflow-x: hidden;
 }
 
 body {
@@ -118,6 +137,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: var(--space-48);
+  min-width: 0;
 }
 
 .app-header {
@@ -127,7 +147,7 @@ a {
 }
 
 .app-header__title {
-  font-size: var(--text-heading-lg);
+  font-size: clamp(24px, 6vw, var(--text-heading-lg));
   line-height: var(--leading-heading-lg);
   letter-spacing: var(--tracking-heading-lg);
   font-weight: 600;
@@ -135,7 +155,10 @@ a {
 }
 
 .app-header__subtitle {
-  font-size: var(--text-body);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-caption);
+  text-transform: uppercase;
   color: var(--color-mid-gray);
   margin: 0;
 }
@@ -144,6 +167,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: var(--space-16);
+  min-width: 0;
 }
 
 .section__heading {
@@ -155,14 +179,15 @@ a {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(260px, 320px) 1fr;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
   gap: var(--space-24);
   align-items: start;
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -180,6 +205,8 @@ a {
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   padding: var(--space-20);
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 
 .card--nested {
@@ -198,12 +225,14 @@ a {
   height: 36px;
   padding: 0 var(--space-12);
   border-radius: var(--radius-pill);
-  font-family: var(--font-sans);
-  font-size: var(--text-body);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  letter-spacing: var(--tracking-caption);
   font-weight: 500;
   border: none;
   cursor: pointer;
   transition: opacity 0.15s ease;
+  white-space: nowrap;
 }
 
 .btn:disabled {
@@ -217,11 +246,11 @@ a {
 
 .btn--primary {
   background: var(--color-ink);
-  color: var(--color-surface-alt);
+  color: var(--color-canvas);
 }
 
 .btn--secondary {
-  background: var(--color-canvas);
+  background: var(--color-surface-alt);
   color: var(--color-ink);
 }
 
@@ -237,9 +266,11 @@ a {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  min-width: 0;
 }
 
 .field__label {
+  font-family: var(--font-mono);
   font-size: var(--text-caption);
   letter-spacing: var(--tracking-caption);
   text-transform: uppercase;
@@ -247,7 +278,7 @@ a {
 }
 
 .input {
-  background: var(--color-canvas);
+  background: var(--color-surface-alt);
   color: var(--color-ink);
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
@@ -255,6 +286,7 @@ a {
   font-family: var(--font-sans);
   font-size: var(--text-body);
   width: 100%;
+  min-width: 0;
 }
 
 .input:focus-visible {
@@ -270,18 +302,25 @@ a {
   align-items: center;
   border-radius: var(--radius-pill);
   padding: 2px var(--space-8);
+  font-family: var(--font-mono);
   font-size: var(--text-caption);
+  letter-spacing: var(--tracking-caption);
   font-weight: 500;
   line-height: 1.6;
+  white-space: nowrap;
+  /* ユーザー入力(お気に入り名等)が長い場合でも横スクロールを起こさない保険。 */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .badge--solid {
   background: var(--color-ink-soft);
-  color: var(--color-surface-alt);
+  color: var(--color-canvas);
 }
 
 .badge--soft {
-  background: var(--color-canvas);
+  background: var(--color-surface-alt);
   color: var(--color-ink-soft);
 }
 
@@ -294,6 +333,7 @@ a {
 /* ── 統計表示(気温など) ────────────────────────────────── */
 
 .stat-block__label {
+  font-family: var(--font-mono);
   font-size: var(--text-caption);
   letter-spacing: var(--tracking-caption);
   text-transform: uppercase;
@@ -316,7 +356,9 @@ a {
 }
 
 .text-caption {
+  font-family: var(--font-mono);
   font-size: var(--text-caption);
+  letter-spacing: var(--tracking-caption);
   color: var(--color-mid-gray);
 }
 

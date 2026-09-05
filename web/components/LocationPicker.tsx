@@ -138,7 +138,14 @@ export function LocationPicker({
                 key={i}
                 className="btn btn--outline"
                 type="button"
-                style={{ justifyContent: "flex-start", height: "auto", padding: "var(--space-8)" }}
+                style={{
+                  justifyContent: "flex-start",
+                  height: "auto",
+                  padding: "var(--space-8)",
+                  whiteSpace: "normal",
+                  textAlign: "left",
+                  wordBreak: "break-word",
+                }}
                 onClick={() => pick(r.lat, r.lon)}
               >
                 {r.name}

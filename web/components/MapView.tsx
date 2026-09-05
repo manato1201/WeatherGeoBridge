@@ -101,10 +101,12 @@ export function MapView({
         type: "circle",
         source: WEATHER_SOURCE_ID,
         paint: {
+          // MapLibreのpaint値はCSS変数を解決できないため静的な色を直接指定する
+          // (ダークテーマの既定パレットに合わせた固定値。テーマ切替には追従しない)。
           "circle-radius": 8,
-          "circle-color": "#0a0a0a",
+          "circle-color": "#e4dfda",
           "circle-stroke-width": 2,
-          "circle-stroke-color": "#ffffff",
+          "circle-stroke-color": "#12130f",
         },
       });
     };
