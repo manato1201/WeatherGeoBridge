@@ -7,7 +7,13 @@ import { compassLabel } from "@/lib/weatherCode";
 // 風向(自前データ)を傾いたアイソメトリックのコンパス/ダイヤルとして
 // 独自に可視化する。常時回転するレーダー掃引でアニメーションを加えている。
 
-const SIZE = 160;
+const SIZE = 168;
+const CARDINALS: Array<{ label: string; deg: number }> = [
+  { label: "N", deg: 0 },
+  { label: "E", deg: 90 },
+  { label: "S", deg: 180 },
+  { label: "W", deg: 270 },
+];
 
 export function PressureCompass({
   pressureHpa,
@@ -19,13 +25,16 @@ export function PressureCompass({
   windSpeedLabel: string;
 }) {
   // 気圧の一般的なレンジ(970〜1040hPa程度)を0-1に正規化し、リングの本数に反映。
-  const normalized = Math.min(1, Math.max(0, (pressureHpa - 970) / (1040 - 970)));
+  const normalized = Math.min(
+    1,
+    Math.max(0, (pressureHpa - 970) / (1040 - 970)),
+  );
   const ringCount = 3;
   const animatedPressure = useCountUp(pressureHpa, 700);
 
   return (
     <div
-      className="card"
+      className="card telemetry-panel"
       style={{
         display: "flex",
         flexDirection: "column",
@@ -33,10 +42,15 @@ export function PressureCompass({
         gap: "var(--space-16)",
       }}
     >
-      <p className="stat-block__label" style={{ margin: 0, alignSelf: "flex-start" }}>
+      <p
+        className="stat-block__label"
+        style={{ margin: 0, alignSelf: "flex-start" }}
+      >
         気圧・風配図(独自可視化)
       </p>
-      <div style={{ perspective: 600 }}>
+      {/* 視覚的な装飾。同じ情報は下のテキスト(気圧・風向)で読み上げ可能なため、
+          支援技術からは隠す。 */}
+      <div style={{ perspective: 600 }} aria-hidden="true">
         <div
           style={{
             width: SIZE,
@@ -53,12 +67,16 @@ export function PressureCompass({
               position: "absolute",
               inset: 0,
               borderRadius: "50%",
-              background: "conic-gradient(from 0deg, var(--color-accent-glow) 0deg, transparent 40deg)",
+              background:
+                "conic-gradient(from 0deg, var(--color-accent-glow) 0deg, transparent 40deg)",
               opacity: 0.35,
             }}
           />
 
-          {/* 気圧を示す同心円(hairline) */}
+          {/* 気圧を示す同心円。以前はvar(--color-hairline)の1px線で、黒背景と
+              ほぼ同化して視認できなかったため、非アクティブ時も
+              半透明のink色+2px幅にして常に輪郭が見える最低限のコントラストを
+              確保している。 */}
           {Array.from({ length: ringCount }).map((_, i) => {
             const ratio = (i + 1) / ringCount;
             const active = normalized >= ratio - 1 / ringCount / 2;
@@ -72,10 +90,42 @@ export function PressureCompass({
                   width: SIZE * ratio,
                   height: SIZE * ratio,
                   borderRadius: "50%",
-                  border: `1px solid ${active ? "var(--color-accent-glow)" : "var(--color-hairline)"}`,
-                  transition: "border-color 0.5s ease",
+                  border: `2px solid ${active ? "var(--color-accent-glow)" : "rgba(228,223,218,0.28)"}`,
+                  boxShadow: active
+                    ? "0 0 12px var(--color-accent-glow)"
+                    : "none",
+                  transition:
+                    "border-color var(--motion-medium) ease, box-shadow var(--motion-medium) ease",
                 }}
               />
+            );
+          })}
+
+          {/* 方位ラベル(N/E/S/W)。傾いたダイヤルの上に貼り付け、リングだけでは
+              伝わりにくい「どちらが北か」を明示する。 */}
+          {CARDINALS.map(({ label, deg }) => {
+            const rad = (deg * Math.PI) / 180;
+            const radius = SIZE / 2 + 14;
+            const x = SIZE / 2 + radius * Math.sin(rad);
+            const y = SIZE / 2 - radius * Math.cos(rad);
+            return (
+              <span
+                key={label}
+                className="text-caption"
+                style={{
+                  position: "absolute",
+                  left: x,
+                  top: y,
+                  transform: "translate(-50%, -50%) translateZ(6px)",
+                  color:
+                    label === "N"
+                      ? "var(--color-ink-soft)"
+                      : "var(--color-mid-gray)",
+                  fontWeight: label === "N" ? 700 : 400,
+                }}
+              >
+                {label}
+              </span>
             );
           })}
 
@@ -85,13 +135,15 @@ export function PressureCompass({
               position: "absolute",
               top: "50%",
               left: "50%",
-              width: 2,
+              width: 3,
               height: SIZE / 2 - 8,
-              background: "var(--color-ink)",
+              background: "var(--color-ink-soft)",
+              borderRadius: 2,
               transformOrigin: "top center",
               transform: `translateX(-50%) translateZ(20px) rotate(${windDirectionDeg}deg)`,
-              transition: "transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
-              boxShadow: "0 0 8px var(--color-accent-glow)",
+              transition:
+                "transform var(--motion-slow) cubic-bezier(0.34, 1.56, 0.64, 1)",
+              boxShadow: "0 0 10px var(--color-accent-glow)",
             }}
           />
           <div

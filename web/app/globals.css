@@ -67,6 +67,21 @@
   --shadow-card: none;
 
   --page-max-width: 1280px;
+
+  /* テレメトリー要素のインラインtransition用の共通デュレーション。
+     prefers-reduced-motion: reduceの場合は下の@mediaで0sに上書きし、
+     インラインstyleのtransitionもまとめて無効化できるようにしている。 */
+  --motion-fast: 0.3s;
+  --motion-medium: 0.6s;
+  --motion-slow: 0.8s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0s;
+    --motion-medium: 0s;
+    --motion-slow: 0s;
+  }
 }
 
 /* システム設定がライトで、かつ明示的にダークへ切り替えていない場合。
@@ -231,11 +246,14 @@ a {
 }
 
 @keyframes slow-spin {
+  /* 面内回転(rotateZ)のみ。rotateX/rotateYで平面の円を回すと、真横向きの
+     瞬間に厚みゼロの線として潰れて見えるため、円の輪郭が常にフルの円の
+     ままになる面内回転に限定している。 */
   from {
-    transform: rotateX(15deg) rotateY(0deg);
+    transform: rotate(0deg);
   }
   to {
-    transform: rotateX(15deg) rotateY(360deg);
+    transform: rotate(360deg);
   }
 }
 
@@ -256,10 +274,16 @@ a {
 
   .card:hover {
     transform: translateY(-2px);
-    border-color: var(--color-accent-glow);
+    /* accent-glowはテレメトリー要素の縁光専用トークン(上部参照)。通常の
+       UIクロムであるカード全般には使わず、ink色の明るいバリアントに留める。 */
+    border-color: var(--color-ink);
     transition:
       transform 0.2s ease,
       border-color 0.2s ease;
+  }
+
+  .telemetry-panel:hover {
+    border-color: var(--color-accent-glow);
   }
 
   .btn:not(:disabled):active {
