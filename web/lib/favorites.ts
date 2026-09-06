@@ -34,9 +34,19 @@ function save(favorites: FavoriteLocation[]): void {
   }
 }
 
+// 「同じ地点」かどうかは名前ではなく座標で判定する。名前は表示用の
+// ラベルに過ぎず、既定の名前(緯度経度の丸め表示)が偶然一致しただけの
+// 別地点を、名前一致とみなして上書きしてしまう不具合を避けるため。
+function isSameLocation(a: FavoriteLocation, b: FavoriteLocation): boolean {
+  return Math.abs(a.lat - b.lat) < 1e-4 && Math.abs(a.lon - b.lon) < 1e-4;
+}
+
 export function addFavorite(favorite: FavoriteLocation): FavoriteLocation[] {
   const current = loadFavorites();
-  const next = [...current.filter((f) => f.name !== favorite.name), favorite];
+  const next = [
+    ...current.filter((f) => !isSameLocation(f, favorite)),
+    favorite,
+  ];
   save(next);
   return next;
 }

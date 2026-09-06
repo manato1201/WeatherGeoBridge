@@ -95,7 +95,16 @@ export function NotificationOptIn() {
             min={0.5}
             step={0.5}
             value={temperatureSwingThresholdC}
-            onChange={(e) => setTemperatureSwingThresholdC(Number(e.target.value) || 5)}
+            onChange={(e) => {
+              // `Number(v) || 5`だと、有効な値である"0"を入力しても
+              // falsyとして扱われ、無関係な5へ強制的に飛んでしまう不具合が
+              // あった。0以下・非数値は単に無視して直前の値を保持する
+              // (サーバー側もworker/src/validate.tsで0以下を弾いている)。
+              const parsed = Number(e.target.value);
+              if (Number.isFinite(parsed) && parsed > 0) {
+                setTemperatureSwingThresholdC(parsed);
+              }
+            }}
           />
           ℃以上変化したら通知する
         </label>

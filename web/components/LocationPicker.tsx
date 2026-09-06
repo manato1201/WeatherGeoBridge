@@ -96,7 +96,7 @@ export function LocationPicker({
 
   function saveFavorite() {
     if (!location) return;
-    const name = favoriteName.trim() || `${location.lat.toFixed(2)}, ${location.lon.toFixed(2)}`;
+    const name = favoriteName.trim() || `${location.lat.toFixed(4)}, ${location.lon.toFixed(4)}`;
     setFavorites(addFavorite({ name, lat: location.lat, lon: location.lon }));
     setFavoriteName("");
   }
