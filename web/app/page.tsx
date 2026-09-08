@@ -14,6 +14,8 @@ import { CloudCoverOrb } from "@/components/telemetry/CloudCoverOrb";
 import { PrecipitationCluster } from "@/components/telemetry/PrecipitationCluster";
 import { PressureCompass } from "@/components/telemetry/PressureCompass";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { TodayIndicators } from "@/components/TodayIndicators";
+import { ToastStack, type ToastItem } from "@/components/ToastStack";
 import { TrendChart } from "@/components/TrendChart";
 import { UnitToggle } from "@/components/UnitToggle";
 import { WeatherCard } from "@/components/WeatherCard";
@@ -27,6 +29,7 @@ import type {
 } from "@/lib/types";
 import { useUnits } from "@/lib/UnitsContext";
 import { formatSpeed } from "@/lib/units";
+import { useServiceWorkerMessages } from "@/lib/useServiceWorkerMessages";
 
 function locationFromUrl(): LocationContext | null {
   if (typeof window === "undefined") return null;
@@ -57,7 +60,26 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [alertFlipKey, setAlertFlipKey] = useState(0);
   const { speedUnit } = useUnits();
+
+  // フォアグラウンドでPush通知(降水開始・気温急変等)を受信した際、
+  // アプリ内にもスタックトーストを表示し、湿度のスプリットフラップを
+  // 発火させる(Worker側の既存の差分検知トリガーにそのままぶら下げており、
+  // 新しい監視処理は増やしていない。WeatherGeoBridge_DESIGN.md Phase7)。
+  useServiceWorkerMessages(
+    useCallback((alert) => {
+      setToasts((prev) =>
+        [{ id: Date.now() + Math.random(), ...alert }, ...prev].slice(0, 5),
+      );
+      setAlertFlipKey((k) => k + 1);
+    }, []),
+  );
+
+  const dismissToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   // 初回マウント時にURLの?lat=&lon=があれば復元する(共有・ブックマーク用)。
   useEffect(() => {
@@ -134,6 +156,7 @@ export default function Page() {
 
   return (
     <main className="page-shell">
+      <ToastStack toasts={toasts} onDismiss={dismissToast} />
       <header
         className="app-header"
         style={{
@@ -216,7 +239,10 @@ export default function Page() {
           {observation && (
             <div className="section" style={{ gap: "var(--space-12)" }}>
               <p className="section__heading">現在の天気</p>
-              <WeatherCard observation={observation} />
+              <WeatherCard
+                observation={observation}
+                alertFlipKey={alertFlipKey}
+              />
               <AdviceCard
                 advice={buildAdvice(
                   observation,
@@ -224,6 +250,12 @@ export default function Page() {
                   airQuality,
                 )}
               />
+            </div>
+          )}
+
+          {forecast && forecast.daily[0] && (
+            <div className="section" style={{ gap: "var(--space-12)" }}>
+              <TodayIndicators today={forecast.daily[0]} />
             </div>
           )}
 
