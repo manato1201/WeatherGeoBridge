@@ -280,7 +280,7 @@ export default function Page() {
         />
       </div>
 
-      <NotificationOptIn />
+      <NotificationOptIn location={location} />
     </main>
   );
 }

@@ -5,25 +5,27 @@ import type { HourlyPoint } from "@/lib/types";
 
 // 「雨雲レーダー」の代替可視化。気象庁の実レーダー画像は使わず(非公式エンド
 // ポイントのリスクを避けるため)、Open-Meteoの降水確率(自前データ)を
-// アイソメトリックな立体ブロック群として独自に可視化する。各ブロックは
-// 上面・前面・側面の3面を持つ実際の3D立方体(CSS transform-style:preserve-3d)。
+// 3Dの縦棒(実際の3D立方体、上面・前面・側面を持つ)として可視化する。
 //
-// 各立方体の内部形状(3面の配置)は常に最終形の高さで固定して組み立て、
-// 出現アニメーションは外側のラッパーでscale(0→1)するだけにする。
-// heightを直接アニメーションさせようとすると各面の再配置計算が複雑になり
-// 破綻しやすいため、この2層構造(内側=静的な立体、外側=出現演出)に分けている。
+// 過去2回、レイアウト全体(CSS gridのコンテナ)を rotateX+rotateZ で回転
+// させていたが、これは「行内の位置(=時刻)」と「回転による見かけ上の
+// 縦方向のズレ」が線形に結びついてしまい、実際の降水確率とは無関係な
+// 階段状の錯視を生んでいた(ユーザー報告のスクリーンショットで確認済み)。
 //
-// 表示は「次9時間・1行」に固定している。以前は24時間分をCSS gridで複数行に
-// 折り返していたが、時刻ラベルは先頭6列分しか表示しておらず、2行目以降の
-// 立方体がどの時刻に対応するか読み取れない状態だった(視認性の問題として
-// 報告された)。1行に収まる範囲だけを表示し、全列に時刻ラベルを付けることで
-// 「どのブロックが何時か」を必ず一意に読み取れるようにしている。
+// 対策: コンテナ自体は一切回転させず、各立方体を個別に(同じ角度で)
+// 回転させる。各立方体のラッパーは高さに関わらず常に同じCUBE_SIZE四方の
+// 箱として扱っているため、「どこに並ぶか」は普通の2Dグリッドのままで
+// 揃い、棒の底辺は常に一直線に揃う(=通常の棒グラフと同じ読み方ができる)。
+// 立方体そのものの内部(上面・前面・側面)は正しい3Dの箱として組み立てて
+// あるので、見た目の奥行きと数値としての正しさを両立できる。
 
 const POINTS_TO_SHOW = 9;
-const CUBE_SIZE = 32;
-const GAP = 6;
-const MIN_HEIGHT = 6;
-const MAX_HEIGHT = 76;
+const CUBE_SIZE = 34;
+const GAP = 10;
+const MIN_HEIGHT = 8;
+const MAX_HEIGHT = 92;
+const TILT = "rotateX(56deg) rotateY(-22deg)";
+const GUIDE_RATIOS = [0.25, 0.5, 0.75, 1];
 
 function formatHour(iso: string): string {
   return `${iso.slice(11, 13)}時`;
@@ -57,12 +59,13 @@ function IsoCube({
   // 「色」でも強度が伝わるようにする(ヒートマップ的な二重の手がかり)。
   const topColor = `color-mix(in srgb, var(--color-ink-soft) ${100 - intensity * 70}%, var(--color-accent-glow) ${intensity * 70}%)`;
   // 前面・側面は常に一定比率のink/canvasミックスにすることで、テーマ(ダーク/
-  // ライト)が変わっても背景に対して十分なコントラストを保つ(旧実装は
-  // var(--color-mid-gray)を暗く使っており、黒背景に溶けて見えていた)。
+  // ライト)が変わっても背景に対して十分なコントラストを保つ。
   const frontColor =
-    "color-mix(in srgb, var(--color-ink) 72%, var(--color-canvas) 28%)";
+    "color-mix(in srgb, var(--color-ink) 78%, var(--color-canvas) 22%)";
   const rightColor =
-    "color-mix(in srgb, var(--color-ink) 46%, var(--color-canvas) 54%)";
+    "color-mix(in srgb, var(--color-ink) 48%, var(--color-canvas) 52%)";
+
+  const revealTransform = revealed ? "scaleY(1)" : "scaleY(0.04)";
 
   return (
     <div
@@ -71,7 +74,9 @@ function IsoCube({
         height: CUBE_SIZE,
         transformStyle: "preserve-3d",
         transformOrigin: "center bottom",
-        transform: revealed ? "scale(1)" : "scale(0.01)",
+        // 回転(TILT)は全キューブ共通・固定。データに応じて変わるのは
+        // scaleYの出現アニメーションだけなので、行の並びが崩れない。
+        transform: `${TILT} ${revealTransform}`,
         opacity: revealed ? 1 : 0,
         transition: `transform var(--motion-medium) cubic-bezier(0.16, 1, 0.3, 1) ${delayMs}ms, opacity var(--motion-fast) ease ${delayMs}ms`,
       }}
@@ -135,6 +140,7 @@ export function PrecipitationCluster({ hourly }: { hourly: HourlyPoint[] }) {
     1,
     ...points.map((p) => p.precipitationProbabilityPercent),
   );
+  const rowWidth = points.length * CUBE_SIZE + (points.length - 1) * GAP;
 
   return (
     <div className="card telemetry-panel">
@@ -152,33 +158,73 @@ export function PrecipitationCluster({ hourly }: { hourly: HourlyPoint[] }) {
           perspective: 900,
           display: "flex",
           justifyContent: "center",
-          paddingBottom: MAX_HEIGHT * 0.5 + 16,
-          paddingTop: 8,
+          paddingBottom: 20,
+          paddingTop: 12,
           position: "relative",
         }}
       >
+        {/* 基準線(0%・25%・50%・75%・100%)。行全体を回転させていた頃と
+            違い、コンテナ自体は回転していないため、通常の棒グラフと同じ
+            感覚で「高さ=どのくらいの確率か」を目盛りから即座に読み取れる。 */}
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 20,
+            height: MAX_HEIGHT,
+            width: rowWidth,
+            margin: "0 auto",
+          }}
+        >
+          {GUIDE_RATIOS.map((ratio) => (
+            <div
+              key={ratio}
+              style={{
+                position: "absolute",
+                left: -36,
+                right: 0,
+                bottom: MIN_HEIGHT + ratio * (MAX_HEIGHT - MIN_HEIGHT),
+                borderTop: "1px dashed rgba(228,223,218,0.18)",
+              }}
+            >
+              <span
+                className="text-caption"
+                style={{
+                  position: "absolute",
+                  left: 0,
+                  transform: "translateY(-50%)",
+                  opacity: 0.6,
+                }}
+              >
+                {Math.round(ratio * 100)}%
+              </span>
+            </div>
+          ))}
+        </div>
+
         {/* 接地シャドウ: 立体群が宙に浮いているように見えるのを防ぎ、
             台座に乗っているような重さ・奥行きを与える。 */}
         <div
           style={{
             position: "absolute",
-            bottom: 4,
+            bottom: 16,
             left: "50%",
-            width: CUBE_SIZE * points.length * 0.85,
-            height: 20,
+            width: rowWidth * 0.95,
+            height: 16,
             transform: "translateX(-50%)",
             background:
               "radial-gradient(ellipse at center, rgba(0,0,0,0.45) 0%, transparent 75%)",
             filter: "blur(2px)",
           }}
         />
+
         <div
           style={{
             display: "grid",
             gridTemplateColumns: `repeat(${points.length}, ${CUBE_SIZE}px)`,
             gap: GAP,
-            transformStyle: "preserve-3d",
-            transform: "rotateX(55deg) rotateZ(-25deg)",
+            alignItems: "end",
           }}
         >
           {points.map((p, i) => {
