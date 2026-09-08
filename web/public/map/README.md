@@ -24,6 +24,23 @@
 - ラベル用フォント・アイコン: Protomaps公式が公開している
   `https://protomaps.github.io/basemaps-assets/` の glyphs/sprite をそのまま参照。
 
+## CORS設定(必須)
+
+R2の公開バケットURLは既定ではCORSヘッダーを一切返さない。`curl`はCORSを
+強制しないため一見動いているように見えるが、ブラウザから`fetch`する
+MapLibre/pmtilesクライアントはCORSヘッダーが無いとレスポンスを読めず、
+地図が「PMTilesが未配置です」というフォールバック表示のまま止まる
+(実際にこの不具合が発生し、報告された)。
+
+`worker/r2-cors.json`(リポジトリに保存済み)を使って一度だけ設定する:
+
+```
+npx wrangler r2 bucket cors set weathergeobridge-map-tiles --file r2-cors.json --force
+```
+
+`npx wrangler r2 bucket cors list weathergeobridge-map-tiles` で確認できる。
+バケットを作り直した場合は再設定が必要。
+
 ## 再生成・更新手順
 
 1. 元データを更新したい場合、`pmtiles`公式CLI(GitHub Releases)で
