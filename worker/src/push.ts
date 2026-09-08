@@ -20,7 +20,7 @@ export async function addSubscription(env: Env, subscription: PushSubscriptionIn
   await env.PUSH_SUBSCRIPTIONS.put(key, JSON.stringify(subscription));
 }
 
-async function listSubscriptions(env: Env): Promise<PushSubscriptionInput[]> {
+export async function listSubscriptions(env: Env): Promise<PushSubscriptionInput[]> {
   const results: PushSubscriptionInput[] = [];
   let cursor: string | undefined;
   do {
@@ -41,13 +41,18 @@ async function listSubscriptions(env: Env): Promise<PushSubscriptionInput[]> {
   return results;
 }
 
-export async function sendDiffToAllSubscriptions(env: Env, diff: WeatherDiff): Promise<void> {
+// 呼び出し元(scheduled.ts)が、対象地点を購読しているサブセットだけを渡す。
+// ここで全購読者を読み直すと、渡された地点と無関係な購読者にも送りかねない。
+export async function sendDiffToSubscriptions(
+  env: Env,
+  diff: WeatherDiff,
+  subscriptions: PushSubscriptionInput[],
+): Promise<void> {
   if (!env.VAPID_PRIVATE_KEY) {
     console.warn("[push] VAPID_PRIVATE_KEY未設定のため通知をスキップしました。");
     return;
   }
 
-  const subscriptions = await listSubscriptions(env);
   if (subscriptions.length === 0) return;
 
   const vapid = {

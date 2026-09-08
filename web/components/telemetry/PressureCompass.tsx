@@ -129,23 +129,45 @@ export function PressureCompass({
             );
           })}
 
-          {/* 風向針 */}
+          {/* 風向針。軸だけだと矢印なのか単なる線なのか初見で伝わりにくいため、
+              先端に三角形の矢尻を付けて「どちらへ吹いているか」を明示する。 */}
           <div
             style={{
               position: "absolute",
               top: "50%",
               left: "50%",
-              width: 3,
-              height: SIZE / 2 - 8,
-              background: "var(--color-ink-soft)",
-              borderRadius: 2,
+              width: 0,
+              height: 0,
               transformOrigin: "top center",
               transform: `translateX(-50%) translateZ(20px) rotate(${windDirectionDeg}deg)`,
               transition:
                 "transform var(--motion-slow) cubic-bezier(0.34, 1.56, 0.64, 1)",
-              boxShadow: "0 0 10px var(--color-accent-glow)",
             }}
-          />
+          >
+            <div
+              style={{
+                width: 3,
+                height: SIZE / 2 - 8,
+                background: "var(--color-ink-soft)",
+                borderRadius: 2,
+                boxShadow: "0 0 10px var(--color-accent-glow)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                top: -2,
+                left: "50%",
+                width: 0,
+                height: 0,
+                transform: "translateX(-50%)",
+                borderLeft: "6px solid transparent",
+                borderRight: "6px solid transparent",
+                borderBottom: "10px solid var(--color-ink-soft)",
+                filter: "drop-shadow(0 0 6px var(--color-accent-glow))",
+              }}
+            />
+          </div>
           <div
             style={{
               position: "absolute",

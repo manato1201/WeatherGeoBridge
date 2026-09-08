@@ -35,11 +35,31 @@ export function parseDays(
 import { DEFAULT_PREFERENCES } from "./alerts";
 import type { NotificationPreferences } from "./types";
 
+export interface SubscriptionLocation {
+  lat: number;
+  lon: number;
+}
+
 export interface PushSubscriptionInput {
   endpoint: string;
   keys: { p256dh: string; auth: string };
   preferences: NotificationPreferences;
+  // 通知はこの地点の変化だけを対象に判定する(以前は「誰かがどこかの地点を
+  // 閲覧した」ことをきっかけに全購読者へ通知していたため、無関係な地点の
+  // 変化が届いてしまう不具合があった)。
+  location: SubscriptionLocation;
   [key: string]: unknown;
+}
+
+function parseLocation(raw: unknown): SubscriptionLocation | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  const lat = r.lat;
+  const lon = r.lon;
+  if (typeof lat !== "number" || typeof lon !== "number") return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  return { lat, lon };
 }
 
 function parsePreferences(raw: unknown): NotificationPreferences {
@@ -71,10 +91,13 @@ export function parsePushSubscription(
   const k = keys as Record<string, unknown>;
   if (typeof k.p256dh !== "string" || !k.p256dh) return null;
   if (typeof k.auth !== "string" || !k.auth) return null;
+  const location = parseLocation(b.location);
+  if (!location) return null;
   return {
     ...b,
     endpoint: b.endpoint,
     keys: { p256dh: k.p256dh, auth: k.auth },
     preferences: parsePreferences(b.preferences),
+    location,
   } as PushSubscriptionInput;
 }

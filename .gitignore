@@ -13,6 +13,7 @@ worker/node_modules/
 worker/.wrangler/
 worker/.dev.vars
 worker/worker-configuration.d.ts
+.wrangler/
 
 *.pmtiles
 

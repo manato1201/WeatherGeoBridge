@@ -9,6 +9,11 @@
   ],
   "vars": {
     "VAPID_PUBLIC_KEY": "BK3op_B-KpCUghZCBi_sKnd3kKJNCL5DzslKNkzKpi3Q4ZylIQU3R1Jl0sLptRPt2O6DmRlIrONHky1Q6IWvrcs",
-    "VAPID_SUBJECT": "mailto:example@example.com"
+    "VAPID_SUBJECT": "mailto:takutoj048@gmail.com"
+  },
+  // 15分ごとに、購読者ごとの登録地点だけを対象に天気変化を判定して通知する
+  // (src/scheduled.ts)。
+  "triggers": {
+    "crons": ["*/15 * * * *"]
   }
 }
