@@ -66,6 +66,11 @@ export async function fetchAirQuality(lat: number, lon: number) {
   return res.json();
 }
 
+export async function fetchHistoricalComparison(lat: number, lon: number) {
+  const res = await backendFetch(`/api/weather/history?lat=${lat}&lon=${lon}`);
+  return res.json();
+}
+
 export async function fetchVapidPublicKey() {
   const res = await backendFetch("/api/push/vapid-public-key");
   return res.json();

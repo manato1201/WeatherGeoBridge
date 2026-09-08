@@ -59,6 +59,20 @@ export interface AirQuality {
   uvIndex: number;
 }
 
+export interface HistoricalPoint {
+  time: string;
+  temperatureC: number;
+}
+
+// 「過去との比較」用。Open-MeteoのHistorical/Archive API(ERA5再解析)は
+// 直近数日分のデータ反映に数日のラグがあるため使わず、通常のForecast APIの
+// past_daysパラメータ(自社の予報モデルの実測混じりデータで、ラグがほぼ無い)
+// から取得する。
+export interface HistoricalComparison {
+  yesterday: HistoricalPoint | null;
+  lastWeek: HistoricalPoint | null;
+}
+
 // Web Push通知の条件(ユーザーがNotificationOptInで設定する)。
 // 未指定時は既定値(降水通知あり・気温急変±5℃)で動作する。
 export interface NotificationPreferences {

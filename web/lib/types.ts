@@ -59,6 +59,16 @@ export interface AirQuality {
   uvIndex: number;
 }
 
+export interface HistoricalPoint {
+  time: string;
+  temperatureC: number;
+}
+
+export interface HistoricalComparison {
+  yesterday: HistoricalPoint | null;
+  lastWeek: HistoricalPoint | null;
+}
+
 export type LocationSource =
   "browser_gps" | "manual_pin" | "game_avatar_position";
 
