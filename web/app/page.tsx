@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AdviceCard } from "@/components/AdviceCard";
 import { AirQualityCard } from "@/components/AirQualityCard";
 import { ForecastList } from "@/components/ForecastList";
+import { HistoricalComparisonCard } from "@/components/HistoricalComparisonCard";
 import { HourlyStrip } from "@/components/HourlyStrip";
 import { LiveClock } from "@/components/LiveClock";
 import { LocationPicker } from "@/components/LocationPicker";
@@ -15,9 +17,11 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { TrendChart } from "@/components/TrendChart";
 import { UnitToggle } from "@/components/UnitToggle";
 import { WeatherCard } from "@/components/WeatherCard";
+import { buildAdvice } from "@/lib/advice";
 import type {
   AirQuality,
   Forecast,
+  HistoricalComparison,
   LocationContext,
   WeatherObservation,
 } from "@/lib/types";
@@ -47,6 +51,8 @@ export default function Page() {
   );
   const [forecast, setForecast] = useState<Forecast | null>(null);
   const [airQuality, setAirQuality] = useState<AirQuality | null>(null);
+  const [historicalComparison, setHistoricalComparison] =
+    useState<HistoricalComparison | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -92,14 +98,22 @@ export default function Page() {
       })
         .then((r) => r.json())
         .catch(() => null),
+      fetch(`/api/weather/history?lat=${location.lat}&lon=${location.lon}`, {
+        signal: controller.signal,
+      })
+        .then((r) => r.json())
+        .catch(() => null),
     ])
-      .then(([weatherData, forecastData, airQualityData]) => {
+      .then(([weatherData, forecastData, airQualityData, historyData]) => {
         if (weatherData.error) throw new Error(weatherData.error);
         if (forecastData.error) throw new Error(forecastData.error);
         setObservation(weatherData);
         setForecast(forecastData);
         setAirQuality(
           airQualityData && !airQualityData.error ? airQualityData : null,
+        );
+        setHistoricalComparison(
+          historyData && !historyData.error ? historyData : null,
         );
         setLastUpdated(new Date());
       })
@@ -203,6 +217,22 @@ export default function Page() {
             <div className="section" style={{ gap: "var(--space-12)" }}>
               <p className="section__heading">現在の天気</p>
               <WeatherCard observation={observation} />
+              <AdviceCard
+                advice={buildAdvice(
+                  observation,
+                  forecast?.daily[0],
+                  airQuality,
+                )}
+              />
+            </div>
+          )}
+
+          {observation && historicalComparison && (
+            <div className="section" style={{ gap: "var(--space-12)" }}>
+              <HistoricalComparisonCard
+                comparison={historicalComparison}
+                currentTemperatureC={observation.temperatureC}
+              />
             </div>
           )}
 

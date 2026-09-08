@@ -10,7 +10,12 @@ import { addSubscription } from "./push";
 import { runScheduledAlertCheck } from "./scheduled";
 import type { Env } from "./types";
 import { parseDays, parseLatLon, parsePushSubscription } from "./validate";
-import { fetchAirQuality, fetchForecast, WeatherClientError } from "./weather";
+import {
+  fetchAirQuality,
+  fetchForecast,
+  fetchHistoricalComparison,
+  WeatherClientError,
+} from "./weather";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -68,6 +73,20 @@ app.get("/api/air-quality", requireApiKey, async (c) => {
   try {
     const airQuality = await fetchAirQuality(latlon.lat, latlon.lon);
     return c.json(airQuality);
+  } catch (err) {
+    const [body, status] = weatherErrorResponse(err);
+    return c.json(body, status);
+  }
+});
+
+app.get("/api/weather/history", requireApiKey, async (c) => {
+  const latlon = parseLatLon(c.req.query("lat"), c.req.query("lon"));
+  if (!latlon) {
+    return c.json({ error: "lat/lonは必須です(緯度-90〜90、経度-180〜180)" }, 400);
+  }
+  try {
+    const comparison = await fetchHistoricalComparison(latlon.lat, latlon.lon);
+    return c.json(comparison);
   } catch (err) {
     const [body, status] = weatherErrorResponse(err);
     return c.json(body, status);

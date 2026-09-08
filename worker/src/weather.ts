@@ -6,6 +6,7 @@ import type {
   AirQuality,
   Forecast,
   ForecastDay,
+  HistoricalComparison,
   HourlyPoint,
   WeatherObservation,
 } from "./types";
@@ -168,6 +169,46 @@ export async function fetchForecast(
     .slice(0, 24);
 
   return { lat, lon, daily: days_, hourly: hourlyPoints };
+}
+
+// JSTの「時刻をUTCとして扱う」変換(fetchForecastの文字列フィルタと同じ手法)。
+// hourly.timeがタイムゾーンオフセットなしのローカル時刻文字列で返るため、
+// Dateで素直にparseすると実行環境依存でUTC/local解釈がぶれる。
+function jstFloorHourKey(date: Date): string {
+  return `${date.toISOString().slice(0, 13)}:00`;
+}
+
+export async function fetchHistoricalComparison(
+  lat: number,
+  lon: number,
+): Promise<HistoricalComparison> {
+  const raw = await get(BASE_URL, {
+    latitude: String(lat),
+    longitude: String(lon),
+    hourly: "temperature_2m",
+    // 過去7日分。ERA5再解析ベースのArchive APIと違い、Forecast APIの
+    // past_daysは自社予報モデルの実測混じりデータでほぼラグが無いため、
+    // 「昨日」のような直近の過去でも欠測にならない。
+    past_days: "7",
+    forecast_days: "1",
+    timezone: "Asia/Tokyo",
+  });
+
+  const hourly = raw.hourly as { time: string[]; temperature_2m: number[] };
+  const nowJst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+
+  function findAt(hoursAgo: number): HistoricalComparison["yesterday"] {
+    const target = new Date(nowJst.getTime() - hoursAgo * 60 * 60 * 1000);
+    const key = jstFloorHourKey(target);
+    const idx = hourly.time.indexOf(key);
+    if (idx === -1 || hourly.temperature_2m[idx] == null) return null;
+    return { time: hourly.time[idx], temperatureC: hourly.temperature_2m[idx] };
+  }
+
+  return {
+    yesterday: findAt(24),
+    lastWeek: findAt(24 * 7),
+  };
 }
 
 const AIR_QUALITY_PARAMS = [
