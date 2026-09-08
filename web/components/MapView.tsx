@@ -1,12 +1,12 @@
 "use client";
 
-import maplibregl, { Map as MapLibreMap } from "maplibre-gl";
+import maplibregl, { Map as MapLibreMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Protocol } from "pmtiles";
 import { useEffect, useRef, useState } from "react";
-import type { WeatherObservation } from "@/lib/types";
+import type { LocationContext } from "@/lib/types";
 
-const WEATHER_SOURCE_ID = "weather-points";
+const DEFAULT_CENTER: [number, number] = [139.7671, 35.6812]; // 東京
 
 let protocolRegistered = false;
 
@@ -18,15 +18,17 @@ function ensurePmtilesProtocol() {
 }
 
 export function MapView({
-  observation,
+  location,
   onPick,
 }: {
-  observation: WeatherObservation | null;
+  location: LocationContext | null;
   onPick?: (lat: number, lon: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
+  const markerRef = useRef<Marker | null>(null);
   const [tileLoadFailed, setTileLoadFailed] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
   // 地図初期化effect(マウント時に一度だけ実行)がクリックハンドラを
   // 登録する際、onPickの最新の参照をrefで持って読むことで、親の再レンダー
@@ -43,8 +45,10 @@ export function MapView({
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: "/map/style.json",
-      center: [139.7671, 35.6812],
-      zoom: 9,
+      // 初回マウント時点で選択済みの地点があればそこを、無ければ東京を中心にする
+      // (以前は常に東京固定で、大阪等の地点を選んでもマーカーが画面外になっていた)。
+      center: location ? [location.lon, location.lat] : DEFAULT_CENTER,
+      zoom: 10,
     });
     mapRef.current = map;
 
@@ -55,68 +59,41 @@ export function MapView({
       setTileLoadFailed(true);
     });
 
+    map.on("load", () => setMapReady(true));
+
     map.on("click", (e) => {
       onPickRef.current?.(e.lngLat.lat, e.lngLat.lng);
     });
     map.getCanvas().style.cursor = "crosshair";
 
     return () => {
+      markerRef.current?.remove();
+      markerRef.current = null;
       map.remove();
       mapRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 選択中の地点が変わるたびに、ピン型マーカーを置き直し、その地点へ
+  // カメラを移動する(検索や地図クリックで地点を変えた際、マーカーが
+  // 画面外に置かれたままにならないようにする)。
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !observation) return;
+    if (!map || !mapReady || !location) return;
 
-    const applyWeatherOverlay = () => {
-      const geojson = {
-        type: "FeatureCollection" as const,
-        features: [
-          {
-            type: "Feature" as const,
-            geometry: {
-              type: "Point" as const,
-              coordinates: [observation.lon, observation.lat],
-            },
-            properties: {
-              temp: observation.temperatureC,
-              code: observation.weatherCode,
-            },
-          },
-        ],
-      };
+    const lngLat: [number, number] = [location.lon, location.lat];
 
-      const existing = map.getSource(WEATHER_SOURCE_ID) as
-        maplibregl.GeoJSONSource | undefined;
-      if (existing) {
-        existing.setData(geojson);
-        return;
-      }
-
-      map.addSource(WEATHER_SOURCE_ID, { type: "geojson", data: geojson });
-      map.addLayer({
-        id: "weather-points-layer",
-        type: "circle",
-        source: WEATHER_SOURCE_ID,
-        paint: {
-          // MapLibreのpaint値はCSS変数を解決できないため静的な色を直接指定する
-          // (ダークテーマの既定パレットに合わせた固定値。テーマ切替には追従しない)。
-          "circle-radius": 8,
-          "circle-color": "#e4dfda",
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#12130f",
-        },
-      });
-    };
-
-    if (map.isStyleLoaded()) {
-      applyWeatherOverlay();
+    if (!markerRef.current) {
+      markerRef.current = new maplibregl.Marker({ color: "#f5c2c8" })
+        .setLngLat(lngLat)
+        .addTo(map);
     } else {
-      map.once("load", applyWeatherOverlay);
+      markerRef.current.setLngLat(lngLat);
     }
-  }, [observation]);
+
+    map.flyTo({ center: lngLat, zoom: Math.max(map.getZoom(), 10), speed: 1.2 });
+  }, [location, mapReady]);
 
   return (
     <div className="card" style={{ padding: 0, overflow: "hidden" }}>

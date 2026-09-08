@@ -298,7 +298,7 @@ export default function Page() {
       <div className="section">
         <p className="section__heading">地図(クリックで地点を選択できます)</p>
         <MapView
-          observation={observation}
+          location={location}
           onPick={(lat, lon) =>
             handleLocationChange({
               lat,

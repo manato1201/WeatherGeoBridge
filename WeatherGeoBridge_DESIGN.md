@@ -454,3 +454,84 @@ LocationContext {
 - **`armd-01.sakura.ne.jp/tiles/`(ユーザー提示)**: PMTiles配信の直接の技術的前例。ただし利用規約により直接参照はしない。
 
 **優先度注記:** 中〜大規模だが各要素技術(Open-Meteo/PMTiles/MapLibre GL JS/MCP)はいずれも実績のある技術であり、手堅い。最大の不確実性はPhase6のVRChat/Unity同期における「UdonSharpからの外部HTTP通信の実現可能性」(VRChatのセキュリティサンドボックス制約)であり、Phase6着手前に技術検証(スパイク)を行うべきである。
+
+---
+
+## Phase 7: UI/アニメーション強化(2026-09-08追記)
+
+**背景**: X上の@ozwxy氏(小澤昂大、WEIN/BACKSTAGE CTO)の実演(GPT-6 Astraによる金属反射・ガラス質感・ホログラム・カードめくれ等30種のUIコンポーネント生成デモ、2026年9月7日投稿)を受け、ユーザーがUI/アニメーション面の強化を明示的に要望。天気の数値表現・通知UIとの相性が高い5種のコンポーネントを選定した。いずれもPhase2のNext.jsフロントエンドへ追加する表示層の変更に限定し、Phase1〜6のスキーマ・API・MCP定義は変更しない。
+
+### 7-1. サーマルゲージ(Thermal Gauge)
+
+Phase2ダッシュボードの気温表示を、`WeatherObservation.temperatureC`を寒色(青)〜暖色(赤)へ連続的に色相変化する温度計型ゲージに置き換える。CSSカスタムプロパティで色相を計算する。
+
+```css
+.thermal-gauge {
+  --temp: 28.4; /* temperatureC をJSから注入 */
+  --hue: clamp(0deg, calc(220deg - (var(--temp) + 10) * 6deg), 220deg);
+  background: linear-gradient(0deg, hsl(220deg 90% 45%), hsl(var(--hue) 90% 50%));
+}
+```
+
+### 7-2. ラジアルプログレス(Radial Progress)
+
+降水確率・UV指数等の0-100%指標を円環状ゲージで表示する。SVG `stroke-dasharray`によるアークで実装する。
+
+```jsx
+function RadialProgress({ percent }) {
+  const r = 40, c = 2 * Math.PI * r;
+  return (
+    <svg viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r={r} strokeWidth="8" fill="none" stroke="var(--track)" />
+      <circle cx="50" cy="50" r={r} strokeWidth="8" fill="none" stroke="var(--accent)"
+        strokeDasharray={c} strokeDashoffset={c * (1 - percent / 100)}
+        style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
+    </svg>
+  );
+}
+```
+
+### 7-3. スプリットフラップ(Split-flap)
+
+気温・湿度等、Phase2の差分検知(Phase2実装内容5)でAPI更新が検知された際に、旧値から新値へフリップアニメーションで切り替える。新規の監視処理は作らず、既存の差分判定トリガーへ表示更新をぶら下げる。
+
+```css
+.flap-digit { perspective: 200px; transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(.4,0,.2,1); }
+.flap-digit.flipped { transform: rotateX(-180deg); }
+```
+
+### 7-4. スタックトースト(Stack Toast)
+
+Phase2のWeb Push通知(`sw.js`)が複数同時に届いた場合、画面上で重ねて表示し上から順に確認・消去できるようにする。`showNotification`受信後、フォアグラウンド側の通知一覧stateへ積み上げる。
+
+```js
+function pushToast(notification) {
+  setToasts((prev) => [notification, ...prev].slice(0, 5)); // 直近5件まで積む
+}
+```
+
+```css
+.toast-stack .toast { transform: translateY(calc(var(--i) * 8px)) scale(calc(1 - var(--i) * 0.04)); }
+```
+
+### 7-5. ピールチケット(Peel Ticket)
+
+降水開始・気温急変等の天気アラートカードに採用する。確認/破棄時に角からめくれて消えるジェスチャーアニメーションとする。`clip-path`とドラッグ量に応じたtransformで実装する。
+
+```js
+function onDragEnd(dx, cardEl) {
+  if (Math.abs(dx) > 80) {
+    cardEl.style.clipPath = 'polygon(0 0, 100% 0, 100% 100%, 30% 70%)';
+    cardEl.style.transform = `translateX(${dx > 0 ? '120%' : '-120%'}) rotate(${dx > 0 ? 15 : -15}deg)`;
+  }
+}
+```
+
+**検証チェックリスト:**
+- [ ] サーマルゲージの色相が`temperatureC`の変化に応じて寒色〜暖色へ連続的に遷移する
+- [ ] ラジアルプログレスの円環アークが降水確率・UV指数の値と一致し、値更新時にアニメーション遷移する
+- [ ] スプリットフラップがPhase2の既存差分検知トリガーのみで発火し、新規の監視処理を追加していない
+- [ ] スタックトーストで複数のWeb Push通知が重なって表示され、個別に上から確認・消去できる
+- [ ] ピールチケットの確認/破棄操作でカードが角からめくれて消え、通知のアラート種別と対応が取れている
+- [ ] Phase1/Phase4のAPIレスポンス形式・Phase5のMCPツール定義に変更が生じていない(表示層のみの変更であることの確認)
