@@ -1,22 +1,37 @@
-# 地図データ配置手順(Phase3)
+# 地図データ配置(Phase3、実配置済み)
 
-このディレクトリにはPMTilesファイルの実体を置く。`armd-01.sakura.ne.jp`は利用規約上
-直接参照しないため、必ず自前で生成したファイルをここに配置すること
-(WeatherGeoBridge_DESIGN.md Phase0/Phase3のアンチパターン)。
+`style.json`は実際に配置したPMTilesファイルを参照している。`armd-01.sakura.ne.jp`は
+利用規約上直接参照しないため(WeatherGeoBridge_DESIGN.md Phase0/Phase3のアンチパターン)、
+自前で用意したデータを自前のCloudflare R2バケットから配信している。
 
-## 生成手順(概要)
+## 配置内容
 
-1. OpenStreetMapの日本データを取得する(例: Geofabrikの`japan-latest.osm.pbf`)。
-2. `tippecanoe`または`planetiler`でベクトルタイル化し、`.pmtiles`形式で出力する。
-3. 生成したファイルをこのディレクトリに `japan.pmtiles` という名前で配置する
-   (`style.json`の`sources.japan.url`がこのファイル名を参照している)。
-4. 月次目安で再生成する場合は `japan-<date>.pmtiles` のような日付サフィックス付きで配置し、
-   `style.json`の参照先を切り替える。切り戻しに備え旧ファイルは即削除しない。
+- データソース: [Protomaps](https://protomaps.com/)が毎日ビルドして公開している
+  OpenStreetMap由来のベースマップ(`build.protomaps.com`)から、`pmtiles extract`
+  (Range Request方式)で日本のバウンディングボックス(`122,20,154,46`)のみを
+  抜き出したもの。planet全体はダウンロードしていない。
+- ズームレベル: 0〜11(Wrangler CLIの単発アップロード上限300MiB以内に収めるため、
+  当初のzoom12版・414MBから絞り込んだ)。アプリ内の地図は400px高のカードで
+  ワンポイントの地点確認用途のため、z11でも実用上十分な detail が確認できる。
+- ホスティング: Cloudflare R2バケット `weathergeobridge-map-tiles` の公開URL
+  (`https://pub-b3aa2a3d1ce1437cbe647e4e80e0c193.r2.dev/japan.pmtiles`)。
+  R2は標準でHTTP Range Requestに対応しており、PMTilesクライアント(`pmtiles`
+  npmパッケージ)が必要な範囲だけを部分取得する。
+- スタイル: `scripts/generate-map-style.mjs`が`@protomaps/basemaps`の`BLACK`
+  フレーバーをアプリのダークパレット(`app/globals.css`のトークンと同じ値)で
+  上書きして`style.json`を生成している。パレットを変更した場合は
+  `node scripts/generate-map-style.mjs`を再実行すること。
+- ラベル用フォント・アイコン: Protomaps公式が公開している
+  `https://protomaps.github.io/basemaps-assets/` の glyphs/sprite をそのまま参照。
 
-## style.jsonのlayers追加について
+## 再生成・更新手順
 
-現在の`style.json`は`japan`ソースを宣言しているのみで、具体的な描画レイヤー
-(道路・建物・水域等)は未定義のプレースホルダーである。生成したpmtilesファイルの
-ソースレイヤー名(tippecanoe/planetilerの設定に依存)に合わせて、`layers`配列に
-`"source": "japan", "source-layer": "<実際のレイヤー名>"` を指定したレイヤーを
-追加すること。
+1. 元データを更新したい場合、`pmtiles`公式CLI(GitHub Releases)で
+   `pmtiles extract <protomapsの最新ビルドURL> japan.pmtiles --bbox=122,20,154,46 --maxzoom=11`
+   を実行する。
+2. `npx wrangler r2 object put weathergeobridge-map-tiles/japan.pmtiles --file japan.pmtiles --remote`
+   でR2へアップロードする(Wrangler CLIは単発アップロードが300MiB上限のため、
+   それを超える場合はmaxzoomをさらに下げるか、S3互換APIでのマルチパート
+   アップロードを検討する)。
+3. パレットを変更した場合は `node scripts/generate-map-style.mjs` を再実行して
+   `style.json` を再生成する。

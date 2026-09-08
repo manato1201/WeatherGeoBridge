@@ -7,6 +7,7 @@ import { cors } from "hono/cors";
 import { requireApiKey } from "./auth";
 import { getOrFetchWeather } from "./cache";
 import { addSubscription } from "./push";
+import { runScheduledAlertCheck } from "./scheduled";
 import type { Env } from "./types";
 import { parseDays, parseLatLon, parsePushSubscription } from "./validate";
 import { fetchAirQuality, fetchForecast, WeatherClientError } from "./weather";
@@ -92,4 +93,12 @@ app.post("/api/push/subscribe", requireApiKey, async (c) => {
 
 app.notFound((c) => c.json({ error: "Not found" }, 404));
 
-export default app;
+export default {
+  fetch: app.fetch,
+  // Cronトリガー(wrangler.jsoncのtriggers.crons)から定期実行される。
+  // レスポンスを返す必要がないHTTPリクエスト外の処理なので、waitUntilで
+  // Workerの実行が完了するまで待たせる。
+  scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(runScheduledAlertCheck(env));
+  },
+} satisfies ExportedHandler<Env>;

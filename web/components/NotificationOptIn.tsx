@@ -1,17 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import type { LocationContext } from "@/lib/types";
 import { urlBase64ToUint8Array } from "@/lib/vapid";
 
 type Status = "idle" | "working" | "subscribed" | "error";
 
-export function NotificationOptIn() {
+export function NotificationOptIn({
+  location,
+}: {
+  location: LocationContext | null;
+}) {
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [notifyPrecipitation, setNotifyPrecipitation] = useState(true);
-  const [temperatureSwingThresholdC, setTemperatureSwingThresholdC] = useState(5);
+  const [temperatureSwingThresholdC, setTemperatureSwingThresholdC] =
+    useState(5);
 
   async function subscribe() {
+    if (!location) {
+      setStatus("error");
+      setMessage("先に地点を選択してください。通知はその地点を監視します。");
+      return;
+    }
+
     setStatus("working");
     setMessage(null);
     try {
@@ -35,7 +47,7 @@ export function NotificationOptIn() {
 
       // 既存の購読があればそれをそのまま使う(なければ新規購読)。
       // Worker側はendpointをキーに上書き保存するので、既存購読に対して
-      // 条件だけ変えて再送信すれば設定の更新として機能する。
+      // 条件(地点・しきい値)だけ変えて再送信すれば設定の更新として機能する。
       const existing = await registration.pushManager.getSubscription();
       const subscription =
         existing ??
@@ -50,6 +62,7 @@ export function NotificationOptIn() {
         body: JSON.stringify({
           ...subscription.toJSON(),
           preferences: { notifyPrecipitation, temperatureSwingThresholdC },
+          location: { lat: location.lat, lon: location.lon },
         }),
       });
       if (!subscribeRes.ok) {
@@ -59,26 +72,57 @@ export function NotificationOptIn() {
       setStatus("subscribed");
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : "不明なエラーが発生しました。");
+      setMessage(
+        err instanceof Error ? err.message : "不明なエラーが発生しました。",
+      );
     }
   }
 
   return (
-    <div className="card" style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--space-12)" }}>
+    <div
+      className="card"
+      style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "var(--space-12)",
+        }}
+      >
         <div>
-          <p className="section__heading" style={{ fontSize: "var(--text-body-lg)" }}>
+          <p
+            className="section__heading"
+            style={{ fontSize: "var(--text-body-lg)" }}
+          >
             通知
           </p>
-          <p className="text-muted" style={{ fontSize: "var(--text-caption)", margin: 0 }}>
-            条件に合致した天気変化をWeb Pushで通知します
+          <p
+            className="text-muted"
+            style={{ fontSize: "var(--text-caption)", margin: 0 }}
+          >
+            {location
+              ? `現在選択中の地点(${location.lat.toFixed(2)}, ${location.lon.toFixed(2)})の天気変化をWeb Pushで通知します`
+              : "地点を選択すると、その地点の天気変化をWeb Pushで通知できます"}
           </p>
         </div>
-        {status === "subscribed" && <span className="badge badge--solid">購読済み</span>}
+        {status === "subscribed" && (
+          <span className="badge badge--solid">購読済み</span>
+        )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", fontSize: "var(--text-body)" }}>
+      <div
+        style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}
+      >
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--space-8)",
+            fontSize: "var(--text-body)",
+          }}
+        >
           <input
             type="checkbox"
             checked={notifyPrecipitation}
@@ -86,7 +130,14 @@ export function NotificationOptIn() {
           />
           降水開始を通知する
         </label>
-        <label style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", fontSize: "var(--text-body)" }}>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--space-8)",
+            fontSize: "var(--text-body)",
+          }}
+        >
           気温が
           <input
             type="number"
@@ -110,12 +161,20 @@ export function NotificationOptIn() {
         </label>
       </div>
 
-      <button className="btn btn--secondary" onClick={subscribe} type="button" disabled={status === "working"}>
+      <button
+        className="btn btn--secondary"
+        onClick={subscribe}
+        type="button"
+        disabled={status === "working" || !location}
+      >
         {status === "subscribed" ? "設定を更新" : "通知を受け取る"}
       </button>
 
       {message && (
-        <p className="text-destructive" style={{ fontSize: "var(--text-caption)", margin: 0 }}>
+        <p
+          className="text-destructive"
+          style={{ fontSize: "var(--text-caption)", margin: 0 }}
+        >
           {message}
         </p>
       )}

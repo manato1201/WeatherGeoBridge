@@ -8,8 +8,7 @@
 // (でなければ直前値が消えて差分アラートが発火しなくなる)ため、起動時に検証する。
 
 import type { ExecutionContext } from "hono";
-import { computeDiff } from "./alerts";
-import { sendDiffToAllSubscriptions } from "./push";
+import { computeDiff, type WeatherDiff } from "./alerts";
 import type { Env, WeatherObservation } from "./types";
 import { fetchCurrentObservation } from "./weather";
 
@@ -25,7 +24,8 @@ interface CacheEntry {
   fetchedAt: number;
 }
 
-function roundKey(lat: number, lon: number): string {
+// scheduled.ts の定期ジョブも同じバケットキーで直前値を参照できるよう公開する。
+export function roundKey(lat: number, lon: number): string {
   return `weather:${lat.toFixed(2)},${lon.toFixed(2)}`;
 }
 
@@ -38,6 +38,13 @@ function parseEntry(raw: string | null): CacheEntry | null {
     console.warn("[cache] キャッシュ値のJSONが不正なため再フェッチします。");
     return null;
   }
+}
+
+async function saveEntry(env: Env, key: string, observation: WeatherObservation): Promise<void> {
+  const nextEntry: CacheEntry = { observation, fetchedAt: Date.now() };
+  await env.WEATHER_CACHE.put(key, JSON.stringify(nextEntry), {
+    expirationTtl: KV_ENTRY_EXPIRATION_SECONDS,
+  });
 }
 
 export async function getOrFetchWeather(
@@ -57,21 +64,29 @@ export async function getOrFetchWeather(
 
   const observation = await fetchCurrentObservation(lat, lon);
 
-  // KVへの書き込みとPush通知判定はレスポンスを待たせる必要がないため、
-  // 呼び出し元への応答を返した後にバックグラウンドで実行する。
-  ctx.waitUntil(
-    (async () => {
-      const nextEntry: CacheEntry = { observation, fetchedAt: Date.now() };
-      await env.WEATHER_CACHE.put(key, JSON.stringify(nextEntry), {
-        expirationTtl: KV_ENTRY_EXPIRATION_SECONDS,
-      });
-
-      const diff = computeDiff(entry?.observation ?? null, observation);
-      if (diff) {
-        await sendDiffToAllSubscriptions(env, diff);
-      }
-    })(),
-  );
+  // KVへの書き込みはレスポンスを待たせる必要がないため、応答を返した後に
+  // バックグラウンドで実行する。
+  //
+  // 注意: ここではPush通知の判定は行わない。以前は「誰かがこの地点をアプリで
+  // 閲覧してキャッシュミスになった」ことを全購読者への通知のきっかけにして
+  // いたが、購読者が実際に興味のある地点かどうかに関わらず全員へ配信されて
+  // しまう不具合があった。通知は scheduled.ts の定期ジョブが、購読者ごとに
+  // 保存された地点だけを対象に判定する(refreshAndDiffを参照)。
+  ctx.waitUntil(saveEntry(env, key, observation));
 
   return observation;
+}
+
+// 定期ジョブ(scheduled.ts)専用。表示用キャッシュのTTLは無視して必ず最新値を
+// 取得し、直前値との差分を計算したうえでキャッシュも更新する。
+export async function refreshAndDiff(
+  env: Env,
+  lat: number,
+  lon: number,
+): Promise<WeatherDiff | null> {
+  const key = roundKey(lat, lon);
+  const previousEntry = parseEntry(await env.WEATHER_CACHE.get(key));
+  const observation = await fetchCurrentObservation(lat, lon);
+  await saveEntry(env, key, observation);
+  return computeDiff(previousEntry?.observation ?? null, observation);
 }
