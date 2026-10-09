@@ -5,7 +5,8 @@ import { europeanAqiLabel } from "./airQuality";
 import type { AirQuality, ForecastDay, WeatherObservation } from "./types";
 
 export interface AdviceItem {
-  icon: string;
+  /** 項目の種別を示す短い文字(絵文字は使わない。IMPROVEMENT_DESIGN_2026-10.md 3章)。 */
+  tag: string;
   text: string;
 }
 
@@ -23,19 +24,19 @@ export function buildAdvice(
 
   if (today && today.precipitationProbabilityPercent >= 50) {
     advice.push({
-      icon: "☂️",
+      tag: "傘",
       text: `降水確率${today.precipitationProbabilityPercent}%。傘を持って出かけましょう`,
     });
   }
 
   if (today && today.uvIndexMax >= 8) {
     advice.push({
-      icon: "🧴",
+      tag: "UV",
       text: "UV指数が非常に高い日です。日焼け対策を念入りに",
     });
   } else if (today && today.uvIndexMax >= 6) {
     advice.push({
-      icon: "🧴",
+      tag: "UV",
       text: "UV指数が高めです。日焼け対策をおすすめします",
     });
   }
@@ -46,28 +47,28 @@ export function buildAdvice(
   );
   if (maxWindMs >= STRONG_WIND_MS) {
     advice.push({
-      icon: "💨",
+      tag: "風",
       text: "強い風が吹いています。飛ばされやすい物に注意してください",
     });
   }
 
   if (today && Math.abs(today.tempMaxC - today.tempMinC) >= LARGE_TEMP_SWING_C) {
     advice.push({
-      icon: "🧥",
+      tag: "寒暖差",
       text: "朝晩の寒暖差が大きい一日です。羽織るものがあると安心です",
     });
   }
 
   if (airQuality && airQuality.europeanAqi > AQI_CAUTION_THRESHOLD) {
     advice.push({
-      icon: "😷",
+      tag: "大気",
       text: `大気質が「${europeanAqiLabel(airQuality.europeanAqi)}」です。外出時はマスクの着用を検討してください`,
     });
   }
 
   if (advice.length === 0) {
     advice.push({
-      icon: "🌤",
+      tag: "平穏",
       text: "特に注意すべき点はなさそうです。過ごしやすい一日を",
     });
   }

@@ -71,6 +71,25 @@ export async function fetchHistoricalComparison(lat: number, lon: number) {
   return res.json();
 }
 
+export async function fetchSeries(points: string) {
+  const res = await backendFetch(
+    `/api/weather/series?points=${encodeURIComponent(points)}`,
+  );
+  return res.json();
+}
+
+export async function fetchGrid(
+  lat: number,
+  lon: number,
+  span: number,
+  n: number,
+) {
+  const res = await backendFetch(
+    `/api/weather/grid?lat=${lat}&lon=${lon}&span=${span}&n=${n}`,
+  );
+  return res.json();
+}
+
 export async function fetchVapidPublicKey() {
   const res = await backendFetch("/api/push/vapid-public-key");
   return res.json();

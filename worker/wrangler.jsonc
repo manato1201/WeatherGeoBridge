@@ -9,7 +9,9 @@
   ],
   "vars": {
     "VAPID_PUBLIC_KEY": "BK3op_B-KpCUghZCBi_sKnd3kKJNCL5DzslKNkzKpi3Q4ZylIQU3R1Jl0sLptRPt2O6DmRlIrONHky1Q6IWvrcs",
-    "VAPID_SUBJECT": "mailto:takutoj048@gmail.com"
+    "VAPID_SUBJECT": "mailto:takutoj048@gmail.com",
+    // CORSを許可するオリジン(カンマ区切り)。ここに無いオリジンからのブラウザ直接呼び出しは拒否される。
+    "ALLOWED_ORIGINS": "https://weathergeobridge.vercel.app,http://localhost:3000,http://localhost:3001"
   },
   // 15分ごとに、購読者ごとの登録地点だけを対象に天気変化を判定して通知する
   // (src/scheduled.ts)。

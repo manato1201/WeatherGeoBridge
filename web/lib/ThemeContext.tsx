@@ -8,12 +8,19 @@ import {
   type ReactNode,
 } from "react";
 
+// "system" は過去に保存された設定との互換のために残している。
+// 既定はライト(地図・グラフの視認性のため。IMPROVEMENT_DESIGN_2026-10.md 2章)で、
+// ダークは手動トグルで切り替える。
 export type ThemePreference = "system" | "light" | "dark";
+export type ResolvedTheme = "light" | "dark";
 
 const STORAGE_KEY = "weathergeobridge:theme";
+const DEFAULT_THEME: ThemePreference = "light";
 
 interface ThemeState {
   theme: ThemePreference;
+  /** systemを解決した、実際に表示しているテーマ。 */
+  resolvedTheme: ResolvedTheme;
   setTheme: (theme: ThemePreference) => void;
 }
 
@@ -28,7 +35,8 @@ function applyTheme(theme: ThemePreference) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemePreference>("system");
+  const [theme, setThemeState] = useState<ThemePreference>(DEFAULT_THEME);
+  const [systemDark, setSystemDark] = useState(false);
 
   useEffect(() => {
     try {
@@ -37,8 +45,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         setThemeState(stored);
       }
     } catch {
-      // 無視してsystemのまま進める。
+      // 保存値が読めなければ既定(ライト)のまま進める。
     }
+
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    setSystemDark(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
   }, []);
 
   function setTheme(next: ThemePreference) {
@@ -51,8 +65,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const resolvedTheme: ResolvedTheme =
+    theme === "system" ? (systemDark ? "dark" : "light") : theme;
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

@@ -86,6 +86,12 @@ async function get(
   return res.json();
 }
 
+// 複数座標など、他モジュール(series.ts)が同じForecast APIを叩くための入口。
+// エラー変換(WeatherClientError)をこの1か所に集約する。
+export function fetchOpenMeteo(params: Record<string, string>): Promise<any> {
+  return get(BASE_URL, params);
+}
+
 export async function fetchCurrentObservation(
   lat: number,
   lon: number,

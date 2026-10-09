@@ -18,27 +18,40 @@ const GAP = 0.35;
 const MIN_HEIGHT = 0.35;
 const MAX_HEIGHT = 3.4;
 
-const BASE_COLOR = new THREE.Color("#f5f2ee"); // --color-ink-soft
-const ACCENT_COLOR = new THREE.Color("#f5c2c8"); // --color-accent-glow
+// ダークでは明るい磁器色、ライトでは背景(白いカード)に沈まない濃いグレー系にする。
+const PALETTE = {
+  dark: {
+    base: new THREE.Color("#f5f2ee"), // --color-ink-soft
+    accent: new THREE.Color("#f5c2c8"), // --color-accent-glow
+    mix: 0.55,
+  },
+  light: {
+    base: new THREE.Color("#55534e"),
+    accent: new THREE.Color("#e0707f"),
+    mix: 0.7,
+  },
+} as const;
 
 function Bar({
   index,
   total,
   ratio,
+  theme,
 }: {
   index: number;
   total: number;
   ratio: number;
+  theme: "light" | "dark";
 }) {
   const height = MIN_HEIGHT + ratio * (MAX_HEIGHT - MIN_HEIGHT);
   const x = (index - (total - 1) / 2) * (BAR_SIZE + GAP);
 
   // 確率が高いほどアクセントカラーへ寄せる(高さ+色の二重の手がかり、
   // 旧CSS版から踏襲)。
-  const color = useMemo(
-    () => BASE_COLOR.clone().lerp(ACCENT_COLOR, ratio * 0.55),
-    [ratio],
-  );
+  const color = useMemo(() => {
+    const p = PALETTE[theme];
+    return p.base.clone().lerp(p.accent, ratio * p.mix);
+  }, [ratio, theme]);
 
   return (
     <RoundedBox
@@ -63,16 +76,18 @@ function Bar({
 export function PrecipitationClusterScene({
   ratios,
   reducedMotion,
+  theme,
 }: {
   ratios: number[];
   reducedMotion: boolean;
+  theme: "light" | "dark";
 }) {
   return (
     <Canvas
       shadows
       dpr={[1, 2]}
       gl={{ alpha: true, antialias: true }}
-      camera={{ position: [6.5, 5.2, 7.2], fov: 30 }}
+      camera={{ position: [9, 6.6, 10], fov: 30 }}
     >
       <ambientLight intensity={0.7} />
       <directionalLight
@@ -87,7 +102,7 @@ export function PrecipitationClusterScene({
 
       <group>
         {ratios.map((ratio, i) => (
-          <Bar key={i} index={i} total={ratios.length} ratio={ratio} />
+          <Bar key={i} index={i} total={ratios.length} ratio={ratio} theme={theme} />
         ))}
       </group>
 

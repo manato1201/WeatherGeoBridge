@@ -69,7 +69,8 @@ export function CloudCoverOrbScene({
       shadows
       dpr={[1, 2]}
       gl={{ alpha: true, antialias: true }}
-      camera={{ position: [2.6, 1.4, 3.2], fov: 32 }}
+      // 球の半径1.68が視野に収まる距離(約7)に置く。近すぎると上下が切れる。
+      camera={{ position: [4.3, 2.3, 5.2], fov: 32 }}
     >
       <ambientLight intensity={isDay ? 0.55 : 0.3} />
       <directionalLight
