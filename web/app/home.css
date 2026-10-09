@@ -1,0 +1,85 @@
+/* トップ。巨大な見出しと細い罫線、主要数値3つ。装飾は足さない(P4・P7)。 */
+
+.home {
+  max-width: var(--page-max-width);
+  min-height: calc(100dvh - var(--nav-h) - var(--footnote-h));
+  margin: 0 auto;
+  padding: var(--space-48) var(--space-24);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-24);
+  min-width: 0;
+}
+
+.home__title {
+  margin: 0;
+  font-size: clamp(36px, 8vw, 88px);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.home__title em {
+  font-style: normal;
+  color: var(--color-accent);
+}
+
+.home__lead {
+  margin: 0;
+  font-size: var(--text-body-lg);
+  color: var(--color-mid-gray);
+}
+
+.home__stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-24);
+  padding: var(--space-20) 0;
+  border-top: 1px solid var(--color-hairline);
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.home__stat-label {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  letter-spacing: 0.12em;
+  color: var(--color-mid-gray);
+}
+
+.home__stat-value {
+  margin: var(--space-4) 0 0;
+  font-size: clamp(24px, 5vw, 44px);
+  line-height: 1.1;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* 単位は小さく */
+.home__stat-value small {
+  font-size: 0.4em;
+  margin-left: 4px;
+}
+
+.home__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-12);
+}
+
+.home__cta .btn {
+  height: 44px;
+  padding: 0 var(--space-24);
+  text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .home {
+    padding: var(--space-24) var(--space-12);
+  }
+  .home__stats {
+    gap: var(--space-12);
+  }
+}

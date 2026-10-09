@@ -16,6 +16,15 @@ export function NotificationOptIn({
   const [notifyPrecipitation, setNotifyPrecipitation] = useState(true);
   const [temperatureSwingThresholdC, setTemperatureSwingThresholdC] =
     useState(5);
+  // タップ波紋(IMPROVEMENT_PLAN_2026-10.md W5)。表示はCSS側がprefers-reduced-motionで止める。
+  const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([]);
+
+  function addRipple(e: React.PointerEvent<HTMLButtonElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const id = Date.now() + Math.random();
+    setRipples((r) => [...r, { id, x: e.clientX - rect.left, y: e.clientY - rect.top }]);
+    setTimeout(() => setRipples((r) => r.filter((p) => p.id !== id)), 650);
+  }
 
   async function subscribe() {
     if (!location) {
@@ -162,12 +171,21 @@ export function NotificationOptIn({
       </div>
 
       <button
-        className="btn btn--secondary"
+        className="btn btn--secondary btn--ripple"
+        onPointerDown={addRipple}
         onClick={subscribe}
         type="button"
         disabled={status === "working" || !location}
       >
         {status === "subscribed" ? "設定を更新" : "通知を受け取る"}
+        {ripples.map((r) => (
+          <span
+            key={r.id}
+            className="btn__ripple"
+            style={{ left: r.x, top: r.y }}
+            aria-hidden="true"
+          />
+        ))}
       </button>
 
       {message && (

@@ -35,7 +35,7 @@ export function AdviceCard({ advice }: { advice: AdviceItem[] }) {
               fontSize: "var(--text-body)",
             }}
           >
-            <span aria-hidden="true">{item.icon}</span>
+            <span className="badge badge--outline" style={{ flexShrink: 0, minWidth: 52, justifyContent: "center" }}>{item.tag}</span>
             <span>{item.text}</span>
           </li>
         ))}

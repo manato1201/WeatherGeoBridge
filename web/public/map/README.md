@@ -17,10 +17,11 @@
   (`https://pub-b3aa2a3d1ce1437cbe647e4e80e0c193.r2.dev/japan.pmtiles`)。
   R2は標準でHTTP Range Requestに対応しており、PMTilesクライアント(`pmtiles`
   npmパッケージ)が必要な範囲だけを部分取得する。
-- スタイル: `scripts/generate-map-style.mjs`が`@protomaps/basemaps`の`BLACK`
-  フレーバーをアプリのダークパレット(`app/globals.css`のトークンと同じ値)で
-  上書きして`style.json`を生成している。パレットを変更した場合は
-  `node scripts/generate-map-style.mjs`を再実行すること。
+- スタイル: `scripts/generate-map-style.mjs`が`@protomaps/basemaps`の`BLACK`/`LIGHT`
+  フレーバーをアプリのパレットで上書きし、ダーク用の`style.json`とライト用の
+  `style-light.json`(既定。アトラスのメッシュの色が読み取りやすいよう淡くしている)を
+  生成している。テーマ切替で`MapView`/`AtlasMap`が自動で差し替える。パレットを変更した
+  場合は`node scripts/generate-map-style.mjs`を再実行すること。
 - ラベル用フォント・アイコン: Protomaps公式が公開している
   `https://protomaps.github.io/basemaps-assets/` の glyphs/sprite をそのまま参照。
 

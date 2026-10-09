@@ -169,6 +169,7 @@ export function LocationPicker({
               onClick={() => pick(city.lat, city.lon)}
             >
               {city.name}
+              <small style={{ marginLeft: 4, fontSize: 9, opacity: 0.6 }}>{city.romaji}</small>
             </button>
           ))}
         </div>

@@ -90,7 +90,7 @@ export function PressureCompassScene({
       shadows
       dpr={[1, 2]}
       gl={{ alpha: true, antialias: true }}
-      camera={{ position: [0, 5.2, 4.2], fov: 34 }}
+      camera={{ position: [0, 6.6, 5.4], fov: 34 }}
     >
       <ambientLight intensity={0.75} />
       <directionalLight position={[3, 5, 2]} intensity={1.1} castShadow />

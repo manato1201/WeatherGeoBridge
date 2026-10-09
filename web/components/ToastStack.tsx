@@ -62,7 +62,7 @@ function PeelToast({
 
   return (
     <div
-      className="card"
+      className="card toast-enter"
       role="alert"
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -87,6 +87,8 @@ function PeelToast({
         boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
       }}
     >
+      {/* 届いた瞬間の波紋(index 0 = 最新のトーストだけ)。reduced-motionでは出ない。 */}
+      {index === 0 && <span className="toast-ripple" aria-hidden="true" />}
       <div
         style={{
           display: "flex",

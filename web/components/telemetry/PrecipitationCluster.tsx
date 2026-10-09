@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
 import type { HourlyPoint } from "@/lib/types";
+import { useTheme } from "@/lib/ThemeContext";
 import { usePrefersReducedMotion } from "@/lib/usePrefersReducedMotion";
 
 // three.js/WebGLはサーバー側でレンダリングできないため、クライアント専用の
@@ -24,6 +25,7 @@ function formatHour(iso: string): string {
 export function PrecipitationCluster({ hourly }: { hourly: HourlyPoint[] }) {
   const points = hourly.slice(0, POINTS_TO_SHOW);
   const reducedMotion = usePrefersReducedMotion();
+  const { resolvedTheme } = useTheme();
   const ratios = useMemo(
     () => points.map((p) => p.precipitationProbabilityPercent / 100),
     [points],
@@ -47,7 +49,11 @@ export function PrecipitationCluster({ hourly }: { hourly: HourlyPoint[] }) {
       {/* 同じ情報は下の時刻・%テキストで読み上げ可能なため、支援技術からは隠す。
           ドラッグで視点を回転できる(自動でもゆっくり回転する)。 */}
       <div style={{ height: 260, touchAction: "none" }} aria-hidden="true">
-        <PrecipitationClusterScene ratios={ratios} reducedMotion={reducedMotion} />
+        <PrecipitationClusterScene
+          ratios={ratios}
+          reducedMotion={reducedMotion}
+          theme={resolvedTheme}
+        />
       </div>
       <div
         style={{

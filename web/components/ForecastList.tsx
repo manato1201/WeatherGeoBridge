@@ -3,7 +3,8 @@
 import type { Forecast } from "@/lib/types";
 import { useUnits } from "@/lib/UnitsContext";
 import { formatSpeed, formatTempInt } from "@/lib/units";
-import { iconFor, labelFor } from "@/lib/weatherCode";
+import { WeatherIcon } from "@/components/WeatherIcon";
+import { labelFor } from "@/lib/weatherCode";
 
 function formatTime(iso: string): string {
   return iso.slice(11, 16);
@@ -26,8 +27,8 @@ export function ForecastList({ forecast }: { forecast: Forecast }) {
           >
             {day.date}
           </p>
-          <div style={{ fontSize: 22, margin: "4px 0" }} aria-hidden="true">
-            {iconFor(day.weatherCode)}
+          <div style={{ margin: "4px 0" }}>
+            <WeatherIcon weatherCode={day.weatherCode} size={24} />
           </div>
           <p style={{ margin: 0, fontWeight: 500 }}>
             {formatTempInt(day.tempMinC, tempUnit)} /{" "}

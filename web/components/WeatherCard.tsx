@@ -7,7 +7,8 @@ import type { WeatherObservation } from "@/lib/types";
 import { useUnits } from "@/lib/UnitsContext";
 import { formatSpeed, formatTemp } from "@/lib/units";
 import { useCountUp } from "@/lib/useCountUp";
-import { compassLabel, iconFor, labelFor } from "@/lib/weatherCode";
+import { WeatherIcon } from "@/components/WeatherIcon";
+import { compassLabel, labelFor } from "@/lib/weatherCode";
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
@@ -37,9 +38,7 @@ export function WeatherCard({
           {labelFor(observation.weatherCode)}
           {observation.isDay ? "" : "(夜)"}
         </span>
-        <span style={{ fontSize: 32 }} aria-hidden="true">
-          {iconFor(observation.weatherCode)}
-        </span>
+        <WeatherIcon weatherCode={observation.weatherCode} size={32} />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-16)" }}>

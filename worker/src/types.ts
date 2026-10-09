@@ -87,4 +87,39 @@ export interface Env {
   VAPID_PUBLIC_KEY: string;
   VAPID_PRIVATE_KEY: string;
   VAPID_SUBJECT: string;
+  // ブラウザからのCORSを許可するオリジン(カンマ区切り)。未設定なら全拒否。
+  ALLOWED_ORIGINS?: string;
+}
+
+// 地図アトラス用: 複数地点の「いま〜+72h(3時間刻み)」の予報系列。
+// 全地点で times の長さと各配列の長さが一致する(欠測は null)。
+export interface SeriesPoint {
+  lat: number;
+  lon: number;
+  temperatureC: (number | null)[];
+  precipitationProbabilityPercent: (number | null)[];
+  precipitationMm: (number | null)[];
+  windSpeedMs: (number | null)[];
+  weatherCode: (number | null)[];
+}
+
+export interface SeriesSet {
+  /** 取得時刻(UTCのISO8601)。画面下の注記「取得 ○時○分」の根拠。 */
+  fetchedAt: string;
+  stepHours: number;
+  /** Asia/Tokyoのローカル時刻文字列("2026-10-09T15:00")。 */
+  times: string[];
+  points: SeriesPoint[];
+}
+
+export interface GridMeta {
+  n: number;
+  /** 1セルの辺の長さ(度)。 */
+  step: number;
+  centerLat: number;
+  centerLon: number;
+}
+
+export interface GridSeriesSet extends SeriesSet {
+  grid: GridMeta;
 }

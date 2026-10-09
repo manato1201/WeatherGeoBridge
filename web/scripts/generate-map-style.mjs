@@ -7,13 +7,13 @@
 
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { BLACK, layers } from "@protomaps/basemaps";
+import { BLACK, LIGHT, layers } from "@protomaps/basemaps";
 
 const PMTILES_URL =
   "https://pub-b3aa2a3d1ce1437cbe647e4e80e0c193.r2.dev/japan.pmtiles";
 
 // app/globals.cssのダークテーマトークンと合わせる。
-const flavor = {
+const darkFlavor = {
   ...BLACK,
   background: "#12130f", // --color-canvas
   earth: "#12130f",
@@ -39,25 +39,62 @@ const flavor = {
   pier: "#1a1b16",
 };
 
-const style = {
-  version: 8,
-  name: "WeatherGeoBridge Base (Dark)",
-  sources: {
-    japan: {
-      type: "vector",
-      url: `pmtiles://${PMTILES_URL}`,
-      attribution:
-        '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
-    },
-  },
-  glyphs:
-    "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
-  sprite: "https://protomaps.github.io/basemaps-assets/sprites/v4/black",
-  layers: layers("japan", flavor, { lang: "ja" }),
+// ライトテーマ(アトラス画面の既定。メッシュの色が読み取りやすいよう、
+// 地図側は淡く彩度を抑える)。
+const lightFlavor = {
+  ...LIGHT,
+  background: "#eceff1",
+  earth: "#f3f3f0",
+  wood_a: "#e4eadf",
+  wood_b: "#e4eadf",
+  park_a: "#e4eadf",
+  park_b: "#e4eadf",
+  scrub_a: "#e4eadf",
+  scrub_b: "#e4eadf",
+  water: "#cfe2f0",
+  buildings: "#e5e5e1",
 };
 
-const outPath = fileURLToPath(
-  new URL("../public/map/style.json", import.meta.url),
+function buildStyle(name, flavor, sprite) {
+  return {
+    version: 8,
+    name,
+    sources: {
+      japan: {
+        type: "vector",
+        url: `pmtiles://${PMTILES_URL}`,
+        attribution:
+          '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+      },
+    },
+    glyphs:
+      "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
+    sprite,
+    layers: layers("japan", flavor, { lang: "ja" }),
+  };
+}
+
+function write(file, style) {
+  const outPath = fileURLToPath(
+    new URL(`../public/map/${file}`, import.meta.url),
+  );
+  writeFileSync(outPath, `${JSON.stringify(style, null, 2)}\n`);
+  console.log(`Wrote ${outPath} (${style.layers.length} layers)`);
+}
+
+write(
+  "style.json",
+  buildStyle(
+    "WeatherGeoBridge Base (Dark)",
+    darkFlavor,
+    "https://protomaps.github.io/basemaps-assets/sprites/v4/black",
+  ),
 );
-writeFileSync(outPath, JSON.stringify(style, null, 2) + "\n");
-console.log(`Wrote ${outPath} (${style.layers.length} layers)`);
+write(
+  "style-light.json",
+  buildStyle(
+    "WeatherGeoBridge Base (Light)",
+    lightFlavor,
+    "https://protomaps.github.io/basemaps-assets/sprites/v4/light",
+  ),
+);

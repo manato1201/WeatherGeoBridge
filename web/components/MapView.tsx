@@ -4,7 +4,12 @@ import maplibregl, { Map as MapLibreMap, Marker } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Protocol } from "pmtiles";
 import { useEffect, useRef, useState } from "react";
+import { useTheme } from "@/lib/ThemeContext";
 import type { LocationContext } from "@/lib/types";
+
+export function mapStyleUrl(theme: "light" | "dark"): string {
+  return theme === "dark" ? "/map/style.json" : "/map/style-light.json";
+}
 
 const DEFAULT_CENTER: [number, number] = [139.7671, 35.6812]; // 東京
 
@@ -29,6 +34,8 @@ export function MapView({
   const markerRef = useRef<Marker | null>(null);
   const [tileLoadFailed, setTileLoadFailed] = useState(false);
   const [mapReady, setMapReady] = useState(false);
+  const { resolvedTheme } = useTheme();
+  const appliedStyleRef = useRef<string | null>(null);
 
   // 地図初期化effect(マウント時に一度だけ実行)がクリックハンドラを
   // 登録する際、onPickの最新の参照をrefで持って読むことで、親の再レンダー
@@ -44,13 +51,14 @@ export function MapView({
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: "/map/style.json",
+      style: mapStyleUrl(resolvedTheme),
       // 初回マウント時点で選択済みの地点があればそこを、無ければ東京を中心にする
       // (以前は常に東京固定で、大阪等の地点を選んでもマーカーが画面外になっていた)。
       center: location ? [location.lon, location.lat] : DEFAULT_CENTER,
       zoom: 10,
     });
     mapRef.current = map;
+    appliedStyleRef.current = mapStyleUrl(resolvedTheme);
 
     // 自前ホストのpmtilesファイルが未配置(プレースホルダー状態)でも
     // ページ全体をクラッシュさせない。
@@ -74,6 +82,15 @@ export function MapView({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // テーマ(ライト/ダーク)の切り替えに合わせて地図のスタイルも差し替える。
+  useEffect(() => {
+    const map = mapRef.current;
+    const url = mapStyleUrl(resolvedTheme);
+    if (!map || appliedStyleRef.current === url) return;
+    appliedStyleRef.current = url;
+    map.setStyle(url);
+  }, [resolvedTheme]);
 
   // 選択中の地点が変わるたびに、ピン型マーカーを置き直し、その地点へ
   // カメラを移動する(検索や地図クリックで地点を変えた際、マーカーが

@@ -8,8 +8,16 @@ import { requireApiKey } from "./auth";
 import { getOrFetchWeather } from "./cache";
 import { addSubscription } from "./push";
 import { runScheduledAlertCheck } from "./scheduled";
+import { getOrFetchGrid, getOrFetchSeries } from "./series";
 import type { Env } from "./types";
-import { parseDays, parseLatLon, parsePushSubscription } from "./validate";
+import {
+  parseDays,
+  parseGridParams,
+  parseLatLon,
+  parsePoints,
+  parsePushSubscription,
+  MAX_SERIES_POINTS,
+} from "./validate";
 import {
   fetchAirQuality,
   fetchForecast,
@@ -19,7 +27,21 @@ import {
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.use("*", cors({ origin: "*", allowHeaders: ["Content-Type", "X-API-Key"] }));
+// CORSは許可リスト方式にする(以前は"*")。ブラウザは通常Next.jsのAPI Route
+// (server-side)経由でここを呼ぶためCORSを必要とせず、許可は直接呼び出しが
+// 必要な自サイトのオリジンだけに絞る。ALLOWED_ORIGINS未設定なら全拒否。
+app.use("*", (c, next) => {
+  const allowed = (c.env.ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return cors({
+    origin: (origin) => (allowed.includes(origin) ? origin : null),
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowHeaders: ["Content-Type", "X-API-Key"],
+    maxAge: 86400,
+  })(c, next);
+});
 
 app.get("/health", (c) => c.json({ status: "ok", server: "weathergeobridge-api" }));
 
@@ -87,6 +109,40 @@ app.get("/api/weather/history", requireApiKey, async (c) => {
   try {
     const comparison = await fetchHistoricalComparison(latlon.lat, latlon.lon);
     return c.json(comparison);
+  } catch (err) {
+    const [body, status] = weatherErrorResponse(err);
+    return c.json(body, status);
+  }
+});
+
+app.get("/api/weather/series", requireApiKey, async (c) => {
+  const points = parsePoints(c.req.query("points"));
+  if (!points) {
+    return c.json(
+      { error: `pointsは"lat,lon;lat,lon"形式で1〜${MAX_SERIES_POINTS}件まで指定してください` },
+      400,
+    );
+  }
+  try {
+    return c.json(await getOrFetchSeries(c.env, c.executionCtx, points));
+  } catch (err) {
+    const [body, status] = weatherErrorResponse(err);
+    return c.json(body, status);
+  }
+});
+
+app.get("/api/weather/grid", requireApiKey, async (c) => {
+  const params = parseGridParams((k) => c.req.query(k));
+  if (!params) {
+    return c.json(
+      { error: "lat/lon必須、spanは0.4〜6(度)、nは4〜10の整数で指定してください" },
+      400,
+    );
+  }
+  try {
+    return c.json(
+      await getOrFetchGrid(c.env, c.executionCtx, params.lat, params.lon, params.span, params.n),
+    );
   } catch (err) {
     const [body, status] = weatherErrorResponse(err);
     return c.json(body, status);

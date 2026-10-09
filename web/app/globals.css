@@ -68,6 +68,13 @@
 
   --page-max-width: 1280px;
 
+  /* 見出しの1語だけに使う差し色(トップの見出し)。--color-accent-glowとは別物で、
+     そちらはテレメトリー要素の縁光専用。 */
+  --color-accent: #7fb2ff;
+
+  --nav-h: 44px;
+  --footnote-h: 36px;
+
   /* テレメトリー要素のインラインtransition用の共通デュレーション。
      prefers-reduced-motion: reduceの場合は下の@mediaで0sに上書きし、
      インラインstyleのtransitionもまとめて無効化できるようにしている。 */
@@ -89,6 +96,7 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     color-scheme: light;
+    --color-accent: #2563eb;
     --color-canvas: #f5f5f5;
     --color-paper: #ffffff;
     --color-surface-alt: #fafafa;
@@ -102,6 +110,7 @@
 /* 明示的にライトへ切り替えた場合(システム設定に関わらず優先) */
 :root[data-theme="light"] {
   color-scheme: light;
+  --color-accent: #2563eb;
   --color-canvas: #f5f5f5;
   --color-paper: #ffffff;
   --color-surface-alt: #fafafa;
@@ -132,6 +141,9 @@ body {
   font-size: var(--text-body);
   line-height: var(--leading-body);
   -webkit-font-smoothing: antialiased;
+  /* 数字は桁を揃える(P1)。気温・降水量などの列が縦に揃う。 */
+  font-variant-numeric: tabular-nums;
+  padding-bottom: var(--footnote-h);
 }
 
 a {
@@ -248,7 +260,9 @@ a {
 @media (prefers-reduced-motion: no-preference) {
   .card,
   .telemetry-panel {
-    animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+    /* fill-modeはbackwards。bothだと終了時のtransformが残り続け、.card:hoverや
+       インライン指定のtransform(トーストのドラッグ・積み重ね)が効かなくなる。 */
+    animation: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
 
   .card:hover {
@@ -476,4 +490,266 @@ a {
 
 .text-destructive {
   color: var(--color-ember);
+}
+
+/* ── 固定ナビ・注記(IMPROVEMENT_DESIGN_2026-10.md 4.3) ─────────── */
+
+.site-nav {
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  padding: 0 var(--space-24);
+  border-bottom: 1px solid var(--color-hairline);
+  background: var(--color-canvas);
+}
+
+.site-nav__brand {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.site-nav__list {
+  display: flex;
+  gap: var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 var(--space-12);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-caption);
+  text-decoration: none;
+  color: var(--color-mid-gray);
+  white-space: nowrap;
+}
+
+.pill:hover {
+  color: var(--color-ink);
+}
+
+.pill--active {
+  background: var(--color-ink);
+  color: var(--color-canvas);
+}
+
+.footnote {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  min-height: var(--footnote-h);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-8);
+  padding: 4px var(--space-24);
+  background: var(--color-canvas);
+  border-top: 1px solid var(--color-hairline);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  color: var(--color-mid-gray);
+}
+
+.footnote a {
+  color: var(--color-ink);
+}
+
+.footnote__sep {
+  opacity: 0.5;
+}
+
+@media (max-width: 640px) {
+  :root {
+    --footnote-h: 56px;
+  }
+  .site-nav {
+    padding: 0 var(--space-12);
+  }
+  .footnote {
+    padding: 4px var(--space-12);
+  }
+}
+
+/* ── 数値表示(右揃え・等幅) ──────────────────────────── */
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.num small {
+  font-size: 0.7em;
+  margin-left: 2px;
+  color: var(--color-mid-gray);
+}
+
+/* ── 遊びごころは場所を決めて入れる(P8): 404・読み込み・通知 ──── */
+
+.rain-loader {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 18px;
+  vertical-align: middle;
+}
+
+.rain-loader span {
+  width: 3px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--color-mid-gray);
+  opacity: 0.8;
+}
+
+.not-found {
+  min-height: calc(100vh - var(--nav-h) - var(--footnote-h));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-16);
+  padding: var(--space-24);
+  text-align: center;
+  overflow: hidden;
+}
+
+.not-found__sky {
+  position: relative;
+  width: min(420px, 90vw);
+  height: 120px;
+}
+
+.not-found__cloud {
+  position: absolute;
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes cloud-drift {
+  from {
+    transform: translateX(-12px);
+  }
+  to {
+    transform: translateX(12px);
+  }
+}
+
+@keyframes rain-fall {
+  0% {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+@keyframes ripple-out {
+  from {
+    transform: scale(0.4);
+    opacity: 0.45;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes btn-ripple {
+  from {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  to {
+    transform: scale(24);
+    opacity: 0;
+  }
+}
+
+@keyframes drop-in {
+  from {
+    transform: translateY(-14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rain-loader span {
+    animation: rain-fall 0.9s ease-in infinite;
+  }
+  .rain-loader span:nth-child(2) {
+    animation-delay: 0.25s;
+  }
+  .rain-loader span:nth-child(3) {
+    animation-delay: 0.5s;
+  }
+
+  .not-found__cloud {
+    animation: cloud-drift 4.5s ease-in-out infinite alternate;
+  }
+  .not-found__cloud:nth-child(2) {
+    animation-duration: 6s;
+    animation-direction: alternate-reverse;
+  }
+
+  /* 通知のタップ波紋と、雨粒が落ちるような出現(W5) */
+  .toast-enter {
+    animation: drop-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
+  }
+  .toast-ripple {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid var(--color-ink);
+    pointer-events: none;
+    animation: ripple-out 0.8s ease-out both;
+  }
+  .btn--ripple {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn--ripple .btn__ripple {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    margin: -6px 0 0 -6px;
+    border-radius: 50%;
+    background: currentColor;
+    pointer-events: none;
+    animation: btn-ripple 0.6s ease-out both;
+  }
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  letter-spacing: 0.24em;
+  color: var(--color-mid-gray);
 }
