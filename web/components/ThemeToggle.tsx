@@ -1,30 +1,19 @@
 "use client";
 
-import { useTheme, type ThemePreference } from "@/lib/ThemeContext";
-
-const LABELS: Record<ThemePreference, string> = {
-  system: "自動",
-  light: "ライト",
-  dark: "ダーク",
-};
-
-const NEXT: Record<ThemePreference, ThemePreference> = {
-  system: "light",
-  light: "dark",
-  dark: "system",
-};
+import { useTheme } from "@/lib/ThemeContext";
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
+  const next = resolvedTheme === "dark" ? "light" : "dark";
 
   return (
     <button
       className="btn btn--outline"
       type="button"
-      onClick={() => setTheme(NEXT[theme])}
-      title="表示テーマを切り替え(自動→ライト→ダーク)"
+      onClick={() => setTheme(next)}
+      title={`${next === "dark" ? "ダーク" : "ライト"}テーマに切り替え`}
     >
-      テーマ: {LABELS[theme]}
+      テーマ: {resolvedTheme === "dark" ? "ダーク" : "ライト"}
     </button>
   );
 }

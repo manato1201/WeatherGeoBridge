@@ -32,6 +32,44 @@ export function parseDays(
   return Math.trunc(days);
 }
 
+export const MAX_SERIES_POINTS = 40;
+
+/** "lat,lon;lat,lon" 形式の地点リストを検証して返す。不正ならnull。 */
+export function parsePoints(raw: string | undefined): LatLon[] | null {
+  if (!raw) return null;
+  const parts = raw.split(";").filter((p) => p.length > 0);
+  if (parts.length === 0 || parts.length > MAX_SERIES_POINTS) return null;
+  const points: LatLon[] = [];
+  for (const part of parts) {
+    const [latRaw, lonRaw, ...rest] = part.split(",");
+    if (rest.length > 0) return null;
+    const p = parseLatLon(latRaw, lonRaw);
+    if (!p) return null;
+    points.push(p);
+  }
+  return points;
+}
+
+export interface GridParams {
+  lat: number;
+  lon: number;
+  span: number;
+  n: number;
+}
+
+/** メッシュ表示用の範囲指定。spanは度(0.4〜6)、nは1辺のセル数(4〜10)。 */
+export function parseGridParams(query: (k: string) => string | undefined): GridParams | null {
+  const latlon = parseLatLon(query("lat"), query("lon"));
+  if (!latlon) return null;
+  const spanRaw = query("span");
+  const nRaw = query("n");
+  const span = spanRaw === undefined ? 2.4 : Number(spanRaw);
+  const n = nRaw === undefined ? 8 : Number(nRaw);
+  if (!Number.isFinite(span) || span < 0.4 || span > 6) return null;
+  if (!Number.isInteger(n) || n < 4 || n > 10) return null;
+  return { ...latlon, span, n };
+}
+
 import { DEFAULT_PREFERENCES } from "./alerts";
 import type { NotificationPreferences } from "./types";
 

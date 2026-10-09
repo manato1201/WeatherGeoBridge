@@ -3,7 +3,7 @@
 import type { Forecast } from "@/lib/types";
 import { useUnits } from "@/lib/UnitsContext";
 import { formatTempInt } from "@/lib/units";
-import { iconFor } from "@/lib/weatherCode";
+import { WeatherIcon } from "@/components/WeatherIcon";
 
 function formatHour(iso: string): string {
   return `${iso.slice(11, 13)}時`;
@@ -27,8 +27,8 @@ export function HourlyStrip({ forecast }: { forecast: Forecast }) {
             <p className="text-caption" style={{ margin: 0 }}>
               {formatHour(point.time)}
             </p>
-            <div style={{ fontSize: 20, margin: "4px 0" }} aria-hidden="true">
-              {iconFor(point.weatherCode)}
+            <div style={{ margin: "4px 0", display: "flex", justifyContent: "center" }}>
+              <WeatherIcon weatherCode={point.weatherCode} size={22} />
             </div>
             <p
               style={{

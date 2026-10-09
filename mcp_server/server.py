@@ -24,6 +24,8 @@ import urllib.request
 
 from mcp.server.mcpserver import MCPServer
 
+from mcp_server.decisions import DECIDERS
+
 mcp = MCPServer("WeatherGeoBridge")
 
 _WORKER_URL = os.environ.get("WEATHERGEOBRIDGE_WORKER_URL", "http://localhost:8788").rstrip("/")
@@ -77,6 +79,34 @@ def get_weather(lat: float, lon: float, api_key: str = "") -> dict:
 def get_forecast(lat: float, lon: float, days: int = 3, api_key: str = "") -> dict:
     """指定した緯度経度の数日先までの予報を取得する(daysは1〜16)。"""
     return _get("/api/weather/forecast", {"lat": lat, "lon": lon, "days": days}, api_key)
+
+
+@mcp.tool()
+def decide_umbrella(lat: float, lon: float, hours: int = 6, api_key: str = "") -> dict:
+    """「傘は要るか」を Yes/No で返す(hoursは先読み時間、1〜24)。
+
+    answerはyes/no/unknown。rain_probability_percentはOpen-Meteoの降水確率(予報)の
+    先読み時間内の最大値で、このルールの確からしさではない(予報であって保証ではない)。
+    evidenceに判断の根拠(しきい値・ピーク時刻・現在の降水量)を含める。
+    """
+    forecast = _get("/api/weather/forecast", {"lat": lat, "lon": lon, "days": 1}, api_key)
+    current = _get("/api/weather", {"lat": lat, "lon": lon}, api_key)
+    return DECIDERS["umbrella"](forecast["hourly"], current["precipitationMm"], hours)
+
+
+@mcp.tool()
+def decide_laundry(lat: float, lon: float, hours: int = 6, api_key: str = "") -> dict:
+    """「洗濯物を外に出せるか」を Yes/No で返す(hoursは先読み時間、1〜24)。
+
+    降水確率が低く、いま降っておらず、湿度が高すぎなければyes。
+    rain_probability_percentはOpen-Meteoの降水確率(予報)の最大値で、ルールの確からしさでは
+    ない(予報であって保証ではない)。
+    """
+    forecast = _get("/api/weather/forecast", {"lat": lat, "lon": lon, "days": 1}, api_key)
+    current = _get("/api/weather", {"lat": lat, "lon": lon}, api_key)
+    return DECIDERS["laundry"](
+        forecast["hourly"], current["precipitationMm"], current["humidityPercent"], hours
+    )
 
 
 if __name__ == "__main__":

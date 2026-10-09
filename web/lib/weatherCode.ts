@@ -6,23 +6,14 @@ export type WeatherCategory = "Clear" | "Cloudy" | "Rain" | "Snow" | "Storm" | "
 export function categorize(weatherCode: number): WeatherCategory {
   if (weatherCode >= 0 && weatherCode <= 1) return "Clear";
   if (weatherCode >= 2 && weatherCode <= 3) return "Cloudy";
-  if (weatherCode >= 45 && weatherCode <= 67) return "Rain";
-  if (weatherCode >= 71 && weatherCode <= 86) return "Snow";
+  // 霧(45・48)は降水ではないので曇りに分類する。
+  if (weatherCode === 45 || weatherCode === 48) return "Cloudy";
+  if (weatherCode >= 51 && weatherCode <= 67) return "Rain";
+  if (weatherCode >= 80 && weatherCode <= 82) return "Rain";
+  if ((weatherCode >= 71 && weatherCode <= 77) || weatherCode === 85 || weatherCode === 86)
+    return "Snow";
   if (weatherCode >= 95 && weatherCode <= 99) return "Storm";
   return "Unknown";
-}
-
-const ICONS: Record<WeatherCategory, string> = {
-  Clear: "☀️",
-  Cloudy: "☁️",
-  Rain: "🌧️",
-  Snow: "❄️",
-  Storm: "⛈️",
-  Unknown: "❓",
-};
-
-export function iconFor(weatherCode: number): string {
-  return ICONS[categorize(weatherCode)];
 }
 
 // WMO weather interpretation codes (公開標準、Open-Meteoが準拠)
