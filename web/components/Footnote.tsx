@@ -10,7 +10,35 @@ export function Footnote() {
 
   return (
     <footer className="footnote" role="contentinfo">
-      <span>データ元: Open-Meteo</span>
+      <span>
+        データ元:{" "}
+        <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">
+          Open-Meteo.com
+        </a>{" "}
+        (
+        <a
+          href="https://creativecommons.org/licenses/by/4.0/deed.ja"
+          target="_blank"
+          rel="noreferrer"
+        >
+          CC BY 4.0
+        </a>
+        )
+      </span>
+      <span className="footnote__sep" aria-hidden="true">
+        /
+      </span>
+      <span>
+        地図 ©{" "}
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noreferrer"
+        >
+          OpenStreetMap
+        </a>{" "}
+        contributors
+      </span>
       <span className="footnote__sep" aria-hidden="true">
         /
       </span>

@@ -79,12 +79,15 @@
   position: relative;
   flex: 1;
   min-width: 0;
-  padding-bottom: 16px;
+  padding: 22px 0 16px;
 }
 
-.atlas__slider input[type="range"] {
-  width: 100%;
-  accent-color: var(--color-ink);
+.atlas__ticks {
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  bottom: 0;
+  height: 14px;
 }
 
 .atlas__ticks span {
@@ -110,9 +113,9 @@
 
 .atlas-map__badge {
   position: absolute;
-  top: var(--space-12);
-  left: var(--space-12);
-  max-width: calc(100% - 72px);
+  bottom: var(--space-12);
+  left: 236px;
+  max-width: calc(100% - 252px);
   white-space: normal;
 }
 
@@ -132,8 +135,8 @@
 .atlas__info {
   position: absolute;
   top: var(--space-12);
-  right: var(--space-12);
-  width: min(360px, calc(100% - 24px));
+  left: var(--space-12);
+  width: min(380px, calc(100% - 24px));
   z-index: 3;
   font-size: var(--text-caption);
   line-height: 1.6;
@@ -218,6 +221,12 @@
   color: var(--color-mid-gray);
   font-size: var(--text-caption);
   cursor: pointer;
+}
+
+.seg__btn {
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
 }
 
 .seg__btn[aria-pressed="true"] {
@@ -319,6 +328,7 @@
 }
 
 .atlas-row__dot {
+  transition: background-color 0.35s ease;
   flex-shrink: 0;
   width: 14px;
   height: 14px;

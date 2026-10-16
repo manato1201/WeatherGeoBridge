@@ -217,6 +217,125 @@ export function buildMeshGeoJson(
   };
 }
 
+/** 2つのメッシュを t(0〜1)で補間する。高さと色だけを滑らかに動かし、値の文字列は
+ *  常に目標側(to)のものを使う。t=1 では to と完全に同じになるので、補間の途中経過が
+ *  終わったあとの表示は API の数値と一致する。 */
+export function lerpMesh(
+  from: GeoJSON.FeatureCollection<GeoJSON.Polygon, MeshFeatureProps>,
+  to: GeoJSON.FeatureCollection<GeoJSON.Polygon, MeshFeatureProps>,
+  t: number,
+): GeoJSON.FeatureCollection<GeoJSON.Polygon, MeshFeatureProps> {
+  if (t >= 1 || from.features.length !== to.features.length) return to;
+  return {
+    type: "FeatureCollection",
+    features: to.features.map((f, i) => {
+      const a = from.features[i].properties;
+      const ca = hexToRgb(a.color);
+      const cb = hexToRgb(f.properties.color);
+      return {
+        ...f,
+        properties: {
+          ...f.properties,
+          height: a.height + (f.properties.height - a.height) * t,
+          color: rgbToHex([
+            ca[0] + (cb[0] - ca[0]) * t,
+            ca[1] + (cb[1] - ca[1]) * t,
+            ca[2] + (cb[2] - ca[2]) * t,
+          ]),
+        },
+      };
+    }),
+  };
+}
+
+/** 高さだけ0にした同じメッシュ(「立体」へ切り替えたとき、柱が立ち上がる起点)。 */
+export function flattenMesh(
+  mesh: GeoJSON.FeatureCollection<GeoJSON.Polygon, MeshFeatureProps>,
+): GeoJSON.FeatureCollection<GeoJSON.Polygon, MeshFeatureProps> {
+  return {
+    ...mesh,
+    features: mesh.features.map((f) => ({
+      ...f,
+      properties: { ...f.properties, height: 0 },
+    })),
+  };
+}
+
+// ── 予報の「注意」(気象庁の警報・注意報ではない) ─────────────────────
+// 予報値が下の目安を超えた時刻を機械的に拾うだけのもの。公式の警報・注意報とは別物で、
+// 画面にもそう明記する(P9)。
+
+export type CautionKind = "rain" | "wind" | "heat" | "cold";
+
+export interface Caution {
+  kind: CautionKind;
+  label: string;
+  /** 目安を超えた実測ではなく「予報値」の表記(例: 降水確率80%)。 */
+  detail: string;
+}
+
+export const CAUTION_RULES = {
+  rainPercent: 70,
+  windMs: 10,
+  heatC: 35,
+  coldC: 0,
+} as const;
+
+export function cautionsAt(point: SeriesPoint, index: number): Caution[] {
+  const out: Caution[] = [];
+  const rain = point.precipitationProbabilityPercent[index];
+  const wind = point.windSpeedMs[index];
+  const temp = point.temperatureC[index];
+  if (rain != null && rain >= CAUTION_RULES.rainPercent) {
+    out.push({ kind: "rain", label: "雨", detail: `降水確率${rain.toFixed(0)}%` });
+  }
+  if (wind != null && wind >= CAUTION_RULES.windMs) {
+    out.push({ kind: "wind", label: "強風", detail: `風${wind.toFixed(1)}m/s` });
+  }
+  if (temp != null && temp >= CAUTION_RULES.heatC) {
+    out.push({ kind: "heat", label: "暑さ", detail: `気温${temp.toFixed(1)}℃` });
+  }
+  if (temp != null && temp <= CAUTION_RULES.coldC) {
+    out.push({ kind: "cold", label: "冷え込み", detail: `気温${temp.toFixed(1)}℃` });
+  }
+  return out;
+}
+
+export interface CautionItem {
+  name: string;
+  time: string;
+  caution: Caution;
+}
+
+/** 区間[from, to]で、地点×種類ごとに最初に目安を超える時刻を1件ずつ拾う。 */
+export function collectCautions(
+  points: SeriesPoint[],
+  names: string[],
+  times: string[],
+  from: number,
+  to: number,
+): CautionItem[] {
+  const items: CautionItem[] = [];
+  points.forEach((point, pi) => {
+    const seen = new Set<CautionKind>();
+    for (let i = from; i <= Math.min(to, times.length - 1); i++) {
+      for (const c of cautionsAt(point, i)) {
+        if (seen.has(c.kind)) continue;
+        seen.add(c.kind);
+        items.push({ name: names[pi] ?? "", time: times[i], caution: c });
+      }
+    }
+  });
+  return items.sort((a, b) => a.time.localeCompare(b.time));
+}
+
+/** 「10/9 15時」。ティッカー用の短い時刻表記。 */
+export function formatShortTime(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2})/.exec(iso);
+  if (!m) return iso;
+  return `${Number(m[2])}/${Number(m[3])} ${m[4]}時`;
+}
+
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
 /** "2026-10-09T15:00"(JSTのローカル時刻文字列)を「10月9日(金) 15:00」にする。 */

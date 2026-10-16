@@ -19,7 +19,7 @@ Phase6(VRChat/Unity実世界同期)は設計のみで実装対象外。詳細は
 | 種別 | URL | 内容 |
 |---|---|---|
 | トップ | https://weathergeobridge.vercel.app/ | 見出しと主要数値(掲載地点数・更新時刻・予報の範囲) |
-| **天気アトラス** | https://weathergeobridge.vercel.app/atlas | 地図が主役。気温/降水/風を色(平面)または高さ(立体)で表示し、下の時間スライダーで +72時間(3時間刻み)を送れる。左に地点一覧(検索・お気に入り・近い順・降水が多い順) |
+| **天気アトラス** | https://weathergeobridge.vercel.app/atlas | 地図が主役。気温/降水/風を色(平面)または高さ(立体)で表示し、下の時間スライダーで +72時間(3時間刻み)を送れる。左に地点一覧(検索・お気に入り・近い順・降水が多い順・予報の注意)。地点を選ぶと詳細ドロワー(スマホはボトムシート)。再生速度 0.25×〜2×、キー操作: Space 再生/停止・← → か , . で3時間送り・M 指標・3 平面/立体 |
 | ダッシュボード | https://weathergeobridge.vercel.app/dashboard | 現在の天気・予報・大気質・3Dテレメトリー・通知設定(旧トップ) |
 | REST API | https://weathergeobridge-api.manato1201m.workers.dev | 下の「APIエンドポイント」を参照(`X-API-Key`必須) |
 | MCP | `python -m mcp_server.server`(セットアップ3) | `get_weather` / `get_forecast` / **`decide_umbrella`** / **`decide_laundry`** |
