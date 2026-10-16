@@ -571,9 +571,16 @@ a {
   opacity: 0.5;
 }
 
+/* 出典・帰属の表記(T12)で注記が長くなったため、折り返す幅では高さを確保する。 */
+@media (max-width: 1100px) {
+  :root {
+    --footnote-h: 44px;
+  }
+}
+
 @media (max-width: 640px) {
   :root {
-    --footnote-h: 56px;
+    --footnote-h: 72px;
   }
   .site-nav {
     padding: 0 var(--space-12);
@@ -752,4 +759,156 @@ a {
   font-size: var(--text-caption);
   letter-spacing: 0.24em;
   color: var(--color-mid-gray);
+}
+
+/* ── SVGラインドロー(Motion 13): pathLength={1} を付けた path に .draw-line ── */
+
+@keyframes line-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .draw-line {
+    stroke-dasharray: 1;
+    animation: line-draw 1s cubic-bezier(0.22, 0.8, 0.3, 1) 0.1s backwards;
+  }
+}
+
+/* ── スケルトン(UIパーツ21): 読み込み中の待ちの印象を軽くする ── */
+
+.skeleton {
+  display: block;
+  height: 16px;
+  border-radius: var(--radius-small);
+  background: var(--color-surface-alt);
+}
+
+.skeleton--lg {
+  height: 44px;
+}
+
+.skeleton--chart {
+  height: 120px;
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    background-image: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--color-ink) 9%, transparent) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.6s linear infinite;
+  }
+}
+
+/* ── マーキー(Motion 16): 流れるティッカー。停止ボタン付き ──── */
+
+.marquee {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 0;
+}
+
+.marquee__viewport {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-hairline);
+  border-radius: var(--radius-pill);
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent
+  );
+}
+
+.marquee__track {
+  display: flex;
+  width: max-content;
+}
+
+.marquee__group {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-24);
+  padding: var(--space-8) var(--space-12);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  white-space: nowrap;
+}
+
+.marquee__toggle {
+  flex-shrink: 0;
+  height: 32px;
+}
+
+@keyframes marquee-run {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .marquee__track {
+    animation: marquee-run 38s linear infinite;
+  }
+
+  .marquee__viewport:hover .marquee__track,
+  .marquee__viewport:focus-within .marquee__track,
+  .marquee__viewport[data-paused="true"] .marquee__track {
+    animation-play-state: paused;
+  }
+}
+
+/* 動きを減らす設定: 流さず、折り返して静止表示にする(複製側は隠す) */
+@media (prefers-reduced-motion: reduce) {
+  .marquee__viewport {
+    mask-image: none;
+    -webkit-mask-image: none;
+    border-radius: var(--radius-nested);
+  }
+  .marquee__track {
+    width: auto;
+  }
+  .marquee__group {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+  .marquee__group[aria-hidden="true"] {
+    display: none;
+  }
+  .marquee__toggle {
+    display: none;
+  }
 }

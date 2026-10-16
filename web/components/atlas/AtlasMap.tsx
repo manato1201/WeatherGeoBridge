@@ -10,7 +10,9 @@ import { Protocol } from "pmtiles";
 import { useEffect, useRef, useState } from "react";
 import {
   buildMeshGeoJson,
+  flattenMesh,
   formatTimeLabel,
+  lerpMesh,
   type AtlasMetric,
   type GridSeriesSet,
   type MeshFeatureProps,
@@ -23,13 +25,37 @@ const SOURCE_ID = "atlas-mesh";
 const FILL_ID = "atlas-mesh-fill";
 const EXTRUSION_ID = "atlas-mesh-extrusion";
 const DEFAULT_CENTER: [number, number] = [139.7671, 35.6812];
-const MARKER_COLOR = "#e03e66";
+const TWEEN_MS = 420;
+const RISE_MS = 760;
+const DRAWER_W = 340;
+
+type Mesh = GeoJSON.FeatureCollection<GeoJSON.Polygon, MeshFeatureProps>;
+
+function easeOutCubic(t: number): number {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+// 選択地点のピン。選択が変わるたびに波紋を2回だけ広げる(常時は動かさない: P8)。
+function createPin(): HTMLElement {
+  const root = document.createElement("div");
+  root.className = "atlas-pin";
+  const ring = document.createElement("span");
+  ring.className = "atlas-pin__ring";
+  const dot = document.createElement("span");
+  dot.className = "atlas-pin__dot";
+  root.append(ring, dot);
+  return root;
+}
 
 let protocolRegistered = false;
 function ensurePmtilesProtocol() {
   if (protocolRegistered) return;
   maplibregl.addProtocol("pmtiles", new Protocol().tile);
   protocolRegistered = true;
+}
+
+function meshKey(fetchedAt: string, metric: AtlasMetric, timeIndex: number): string {
+  return `${fetchedAt}|${metric}|${timeIndex}`;
 }
 
 function styleUrl(theme: ResolvedTheme): string {
@@ -70,6 +96,7 @@ export function AtlasMap({
   view,
   selected,
   theme,
+  reserveSide,
 }: {
   grid: GridSeriesSet | null;
   metric: AtlasMetric;
@@ -77,12 +104,18 @@ export function AtlasMap({
   view: AtlasView;
   selected: { lat: number; lon: number } | null;
   theme: ResolvedTheme;
+  /** 詳細ドロワー/ボトムシートが地図の上に出ている間、選択地点がその下に隠れないよう余白を取る。 */
+  reserveSide: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const markerRef = useRef<Marker | null>(null);
   const popupRef = useRef<Popup | null>(null);
   const appliedStyleRef = useRef<string | null>(null);
+  // 画面に最後に流し込んだメッシュ(補間の起点)と、それが何の値かの識別子。
+  const shownRef = useRef<Mesh | null>(null);
+  const shownKeyRef = useRef<string | null>(null);
+  const tweenRef = useRef<number | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -110,12 +143,12 @@ export function AtlasMap({
     function addMeshLayers() {
       if (map.getSource(SOURCE_ID)) return;
       const { grid, metric, timeIndex, view } = latest.current;
-      map.addSource(SOURCE_ID, {
-        type: "geojson",
-        data: grid
-          ? buildMeshGeoJson(grid, metric, timeIndex)
-          : { type: "FeatureCollection", features: [] },
-      });
+      const initial: Mesh = grid
+        ? buildMeshGeoJson(grid, metric, timeIndex)
+        : { type: "FeatureCollection", features: [] };
+      shownRef.current = initial;
+      shownKeyRef.current = grid ? meshKey(grid.fetchedAt, metric, timeIndex) : null;
+      map.addSource(SOURCE_ID, { type: "geojson", data: initial });
       // 地名ラベルをメッシュの上に残す。
       const firstSymbol = map.getStyle().layers.find((l) => l.type === "symbol")?.id;
       map.addLayer(
@@ -174,6 +207,7 @@ export function AtlasMap({
     }
 
     return () => {
+      if (tweenRef.current !== null) cancelAnimationFrame(tweenRef.current);
       popupRef.current?.remove();
       markerRef.current?.remove();
       markerRef.current = null;
@@ -185,16 +219,50 @@ export function AtlasMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // メッシュを from → target へ滑らかに動かす(高さと色だけ。最後のフレームは target と同一)。
+  function runTween(map: MapLibreMap, from: Mesh, target: Mesh, durationMs: number) {
+    if (tweenRef.current !== null) cancelAnimationFrame(tweenRef.current);
+    const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (!source) return;
+    const push = (mesh: Mesh) => {
+      source.setData(mesh);
+      shownRef.current = mesh;
+    };
+    if (prefersReducedMotion() || durationMs <= 0) {
+      push(target);
+      return;
+    }
+    const start = performance.now();
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      push(lerpMesh(from, target, easeOutCubic(t)));
+      tweenRef.current = t < 1 ? requestAnimationFrame(tick) : null;
+    };
+    tweenRef.current = requestAnimationFrame(tick);
+  }
+
   // 値の更新(時刻スライダー・指標の切替・新しいメッシュ)。
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready || !grid) return;
-    (map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined)?.setData(
-      buildMeshGeoJson(grid, metric, timeIndex),
-    );
+    const key = meshKey(grid.fetchedAt, metric, timeIndex);
+    if (shownKeyRef.current === key) return;
+    shownKeyRef.current = key;
+    const target = buildMeshGeoJson(grid, metric, timeIndex);
+    const from = shownRef.current;
+    if (from && from.features.length === target.features.length) {
+      runTween(map, from, target, TWEEN_MS);
+    } else if (view === "3d") {
+      // 初回のメッシュ到着: 立体なら柱が下から立ち上がる。
+      runTween(map, flattenMesh(target), target, RISE_MS);
+    } else {
+      runTween(map, target, target, 0);
+    }
+    // runTween は ref とmapだけを使う。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [grid, metric, timeIndex, ready]);
 
-  // 平面⇔立体。立体では傾けて高さが見えるようにする。
+  // 平面⇔立体。立体では傾けて高さが見えるようにし、柱を立ち上げる。
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
@@ -205,6 +273,12 @@ export function AtlasMap({
       bearing: view === "3d" ? -14 : 0,
       duration: prefersReducedMotion() ? 0 : 700,
     });
+    const { grid, metric, timeIndex } = latest.current;
+    if (view === "3d" && grid && shownRef.current?.features.length) {
+      const target = buildMeshGeoJson(grid, metric, timeIndex);
+      runTween(map, flattenMesh(target), target, RISE_MS);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, ready]);
 
   // ライト/ダークで地図のスタイルを切り替える。
@@ -218,20 +292,37 @@ export function AtlasMap({
     map.setStyle(url, { diff: false });
   }, [theme]);
 
-  // 選択中の地点にピンを置き、そこへ移動する。
+  // 選択中の地点にピンを置き、そこへ移動する(ドロワーが出ている間は隠れない位置へ)。
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !selected) return;
     const lngLat: [number, number] = [selected.lon, selected.lat];
     if (!markerRef.current) {
-      markerRef.current = new maplibregl.Marker({ color: MARKER_COLOR })
+      markerRef.current = new maplibregl.Marker({ element: createPin() })
         .setLngLat(lngLat)
         .addTo(map);
     } else {
       markerRef.current.setLngLat(lngLat);
     }
-    map.easeTo({ center: lngLat, duration: prefersReducedMotion() ? 0 : 800 });
-  }, [selected]);
+    // 波紋を最初から再生し直す(クラスを外して再付与)。
+    const el = markerRef.current.getElement();
+    el.classList.remove("is-pulsing");
+    void el.offsetWidth;
+    el.classList.add("is-pulsing");
+
+    const narrow = window.innerWidth <= 900;
+    const height = containerRef.current?.clientHeight ?? 0;
+    map.easeTo({
+      center: lngLat,
+      padding: {
+        top: 0,
+        left: 0,
+        right: reserveSide && !narrow ? DRAWER_W : 0,
+        bottom: reserveSide && narrow ? Math.round(height * 0.42) : 0,
+      },
+      duration: prefersReducedMotion() ? 0 : 800,
+    });
+  }, [selected, reserveSide]);
 
   return (
     <div className="atlas-map">
