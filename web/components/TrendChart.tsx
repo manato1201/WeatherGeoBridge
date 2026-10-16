@@ -97,6 +97,9 @@ export function TrendChart({ hourly }: { hourly: HourlyPoint[] }) {
         </text>
 
         <path
+          key={tempPath}
+          className="draw-line"
+          pathLength={1}
           d={tempPath}
           fill="none"
           stroke="var(--color-ink)"

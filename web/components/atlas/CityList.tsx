@@ -5,6 +5,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  cautionsAt,
   colorFor,
   distanceKm,
   formatValue,
@@ -31,12 +32,13 @@ interface GeocodeResult {
   lon: number;
 }
 
-type Chip = "fav" | "near" | "rain";
+type Chip = "fav" | "near" | "rain" | "caution";
 
 const CHIPS: { id: Chip; label: string }[] = [
   { id: "fav", label: "お気に入り" },
   { id: "near", label: "近い順" },
   { id: "rain", label: "降水が多い順" },
+  { id: "caution", label: "予報の注意" },
 ];
 
 const FALLBACK_CENTER = { lat: 35.6812, lon: 139.7671 };
@@ -44,6 +46,7 @@ const FALLBACK_CENTER = { lat: 35.6812, lon: 139.7671 };
 export function CityList({
   rows,
   series,
+  loading,
   timeIndex,
   metric,
   selected,
@@ -53,10 +56,12 @@ export function CityList({
   rows: CityRow[];
   /** rowsと同じ並びの予報系列(未取得ならnull)。 */
   series: SeriesPoint[] | null;
+  /** 予報系列を取得中(行をスケルトンで出す)。 */
+  loading: boolean;
   timeIndex: number;
   metric: AtlasMetric;
   selected: { lat: number; lon: number } | null;
-  onSelect: (location: { lat: number; lon: number }) => void;
+  onSelect: (location: { lat: number; lon: number; name?: string; romaji?: string }) => void;
   onToggleFavorite: (row: CityRow) => void;
 }) {
   const [query, setQuery] = useState("");
@@ -75,6 +80,11 @@ export function CityList({
         )
       : base;
     if (chip === "fav") list = list.filter(({ row }) => row.favorite);
+    if (chip === "caution") {
+      list = list.filter(
+        ({ point }) => point !== null && timeIndex >= 0 && cautionsAt(point, timeIndex).length > 0,
+      );
+    }
     if (chip === "near") {
       const c = selected ?? FALLBACK_CENTER;
       list = [...list].sort(
@@ -90,6 +100,15 @@ export function CityList({
     }
     return list;
   }, [rows, series, query, chip, selected, timeIndex]);
+
+  // 予報の注意の件数(チップの小さな丸バッジ)。スライダーの時刻で数える。
+  const cautionCount = useMemo(() => {
+    if (!series || timeIndex < 0) return 0;
+    return rows.reduce(
+      (n, _row, i) => n + (series[i] && cautionsAt(series[i], timeIndex).length > 0 ? 1 : 0),
+      0,
+    );
+  }, [rows, series, timeIndex]);
 
   async function search() {
     const q = query.trim();
@@ -154,6 +173,15 @@ export function CityList({
             onClick={() => setChip(chip === c.id ? null : c.id)}
           >
             {c.label}
+            {c.id === "caution" && series && (
+              <span
+                className="count-badge num"
+                data-zero={cautionCount === 0 ? "true" : "false"}
+                aria-label={`${cautionCount}地点`}
+              >
+                {cautionCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -171,7 +199,7 @@ export function CityList({
                     type="button"
                     className="atlas-row"
                     onClick={() => {
-                      onSelect({ lat: r.lat, lon: r.lon });
+                      onSelect({ lat: r.lat, lon: r.lon, name: r.name });
                       setResults(null);
                     }}
                   >
@@ -194,6 +222,16 @@ export function CityList({
       )}
 
       <ul className="atlas-list__rows" aria-label="地点一覧">
+        {loading && !series &&
+          Array.from({ length: 6 }, (_, i) => (
+            <li key={`sk${i}`} className="atlas-row-wrap" aria-hidden="true">
+              <span className="atlas-row atlas-row--skeleton">
+                <span className="skeleton skeleton--dot" />
+                <span className="skeleton skeleton--name" />
+                <span className="skeleton skeleton--value" />
+              </span>
+            </li>
+          ))}
         {entries.map(({ row, point }) => {
           const value = point ? valueAt(point, metric, timeIndex) : null;
           const others = (["temperature", "precipitation", "wind"] as const)
@@ -209,7 +247,9 @@ export function CityList({
                 type="button"
                 className="atlas-row"
                 aria-current={isSelected(row) ? "true" : undefined}
-                onClick={() => onSelect({ lat: row.lat, lon: row.lon })}
+                onClick={() =>
+                  onSelect({ lat: row.lat, lon: row.lon, name: row.name, romaji: row.romaji })
+                }
               >
                 <span
                   className="atlas-row__dot"
@@ -239,11 +279,13 @@ export function CityList({
             </li>
           );
         })}
-        {entries.length === 0 && (
+        {entries.length === 0 && !(loading && !series) && (
           <li className="text-muted atlas-list__empty">
             {chip === "fav"
               ? "お気に入りはまだありません。各行の☆で追加できます。"
-              : "該当する地点がありません。"}
+              : chip === "caution"
+                ? "この時刻に目安を超える地点はありません。"
+                : "該当する地点がありません。"}
           </li>
         )}
       </ul>
