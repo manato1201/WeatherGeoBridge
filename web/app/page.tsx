@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { CountUp } from "@/components/CountUp";
+import { CloudBoil } from "@/components/CloudBoil";
 import { Marquee } from "@/components/Marquee";
 import {
   collectCautions,
@@ -93,6 +93,8 @@ export default function HomePage() {
 
   return (
     <main className="home">
+      {/* 動きは「線画の雲の震え」と「注意のティッカー」の2種類に絞る(1画面2種類まで)。 */}
+      <CloudBoil className="home__sky" />
       <p className="eyebrow">WEATHER ATLAS</p>
       <h1 className="home__title">
         天気を、<em>地図</em>の上で読む。
@@ -103,7 +105,7 @@ export default function HomePage() {
 
       <div className="home__stats">
         <Stat label="掲載地点" unit="地点">
-          <CountUp value={JAPAN_CITY_PRESETS.length} />
+          {JAPAN_CITY_PRESETS.length}
         </Stat>
         <Stat label="更新">
           {series ? (
@@ -116,9 +118,7 @@ export default function HomePage() {
           {rangeHours === null ? (
             <span className="skeleton skeleton--stat" aria-label="読み込み中" />
           ) : (
-            <>
-              +<CountUp value={rangeHours} />
-            </>
+            `+${rangeHours}`
           )}
         </Stat>
       </div>

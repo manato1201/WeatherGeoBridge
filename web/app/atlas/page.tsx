@@ -501,6 +501,23 @@ export default function AtlasPage() {
                 setTimeIndex(Number(e.target.value));
               }}
             />
+            {/* 3時間刻みの目盛りの列。つまみに近いほど目盛りが伸びる(魚眼、Y3 の考え方)。 */}
+            <div className="atlas__rail" aria-hidden="true">
+              {times.map((t, i) => {
+                const near = Math.max(0, 1 - Math.abs(i - safeIndex) / 3);
+                return (
+                  <span
+                    key={t}
+                    className="atlas__rail-tick"
+                    data-current={i === safeIndex ? "true" : "false"}
+                    style={{
+                      left: `${lastIndex === 0 ? 0 : (i / lastIndex) * 100}%`,
+                      height: `${4 + near * 9}px`,
+                    }}
+                  />
+                );
+              })}
+            </div>
             <div className="atlas__ticks" aria-hidden="true">
               {dayTicks.map((d) => (
                 <span key={d.label} style={{ left: `${d.left}%` }}>

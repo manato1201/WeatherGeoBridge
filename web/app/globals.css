@@ -779,6 +779,35 @@ a {
   }
 }
 
+/* ── 線画の雲の震え(Y2 #136 Line boil): CloudBoil.tsx ── */
+
+.cloud-boil__lines {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes cloud-boil {
+  0% {
+    filter: url(#wgb-boil-a);
+  }
+  33.333% {
+    filter: url(#wgb-boil-b);
+  }
+  66.666% {
+    filter: url(#wgb-boil-c);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cloud-boil__lines {
+    filter: url(#wgb-boil-a);
+    animation: cloud-boil 0.36s steps(1, end) infinite;
+  }
+}
+
 /* ── スケルトン(UIパーツ21): 読み込み中の待ちの印象を軽くする ── */
 
 .skeleton {

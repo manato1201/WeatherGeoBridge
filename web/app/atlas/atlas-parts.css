@@ -91,6 +91,35 @@
   pointer-events: none;
 }
 
+/* 目盛りの列(魚眼): スライダーの下に25本。つまみの近くだけ伸びる */
+
+.atlas__rail {
+  position: absolute;
+  left: 9px;
+  right: 9px;
+  top: 44px;
+  height: 14px;
+}
+
+.atlas__rail-tick {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  background: var(--color-hairline);
+  transform: translateX(-50%);
+}
+
+.atlas__rail-tick[data-current="true"] {
+  width: 2px;
+  background: var(--color-ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .atlas__rail-tick {
+    transition: height 0.16s ease-out;
+  }
+}
+
 .atlas__stepper {
   display: inline-flex;
   gap: var(--space-4);

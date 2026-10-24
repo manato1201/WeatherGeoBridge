@@ -1,6 +1,21 @@
 /* トップ。巨大な見出しと細い罫線、主要数値3つ。装飾は足さない(P4・P7)。 */
 
+.home__sky {
+  position: absolute;
+  top: var(--space-24);
+  right: var(--space-24);
+  width: clamp(140px, 26vw, 340px);
+  height: auto;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.home > :not(.home__sky) {
+  position: relative;
+}
+
 .home {
+  position: relative;
   max-width: var(--page-max-width);
   min-height: calc(100dvh - var(--nav-h) - var(--footnote-h));
   margin: 0 auto;

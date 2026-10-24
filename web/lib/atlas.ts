@@ -217,30 +217,70 @@ export function buildMeshGeoJson(
   };
 }
 
+export interface TweenOptions {
+  /** 波の起点 [lon, lat]。指定すると、起点に近いセルから順に動く(液体が広がるような遷移)。 */
+  origin?: [number, number];
+  /** 0〜1未満。大きいほどセルごとの時間差が大きい。 */
+  spread?: number;
+  /** 色と(heightEaseが無ければ)高さのイージング。 */
+  ease?: (t: number) => number;
+  /** 高さだけ別のイージングにしたいとき(行き過ぎて戻る動きなど)。色には使わない。 */
+  heightEase?: (t: number) => number;
+}
+
+function centroid(f: GeoJSON.Feature<GeoJSON.Polygon>): Position {
+  const ring = f.geometry.coordinates[0];
+  return [(ring[0][0] + ring[2][0]) / 2, (ring[0][1] + ring[2][1]) / 2];
+}
+
 /** 2つのメッシュを t(0〜1)で補間する。高さと色だけを滑らかに動かし、値の文字列は
- *  常に目標側(to)のものを使う。t=1 では to と完全に同じになるので、補間の途中経過が
- *  終わったあとの表示は API の数値と一致する。 */
+ *  常に目標側(to)のものを使う。t=1 では to と完全に同じになる(各セルの進み具合が
+ *  1に丸められ、イージングも1で1を返す前提)ので、動きが終わったあとの表示は
+ *  API の数値と一致する。 */
 export function lerpMesh(
   from: GeoJSON.FeatureCollection<GeoJSON.Polygon, MeshFeatureProps>,
   to: GeoJSON.FeatureCollection<GeoJSON.Polygon, MeshFeatureProps>,
   t: number,
+  opts: TweenOptions = {},
 ): GeoJSON.FeatureCollection<GeoJSON.Polygon, MeshFeatureProps> {
   if (t >= 1 || from.features.length !== to.features.length) return to;
+  const spread = Math.min(0.95, Math.max(0, opts.spread ?? 0));
+  const ease = opts.ease ?? ((x: number) => x);
+  const heightEase = opts.heightEase ?? ease;
+
+  // 起点からの距離(最も遠いセルを1として正規化)。
+  let dist: number[] | null = null;
+  if (opts.origin && spread > 0) {
+    const [ox, oy] = opts.origin;
+    const raw = to.features.map((f) => {
+      const [x, y] = centroid(f);
+      return Math.hypot(x - ox, y - oy);
+    });
+    const max = Math.max(...raw) || 1;
+    dist = raw.map((d) => d / max);
+  }
+
   return {
     type: "FeatureCollection",
     features: to.features.map((f, i) => {
       const a = from.features[i].properties;
+      const local = dist
+        ? Math.min(1, Math.max(0, (t - dist[i] * spread) / (1 - spread)))
+        : t;
+      const tc = ease(local);
+      const th = heightEase(local);
       const ca = hexToRgb(a.color);
       const cb = hexToRgb(f.properties.color);
+      const clamp = (v: number) => Math.min(255, Math.max(0, v));
       return {
         ...f,
         properties: {
           ...f.properties,
-          height: a.height + (f.properties.height - a.height) * t,
+          height: Math.max(0, a.height + (f.properties.height - a.height) * th),
           color: rgbToHex([
-            ca[0] + (cb[0] - ca[0]) * t,
-            ca[1] + (cb[1] - ca[1]) * t,
-            ca[2] + (cb[2] - ca[2]) * t,
+            clamp(ca[0] + (cb[0] - ca[0]) * tc),
+            clamp(ca[1] + (cb[1] - ca[1]) * tc),
+            clamp(ca[2] + (cb[2] - ca[2]) * tc),
           ]),
         },
       };

@@ -14,6 +14,7 @@ import {
   formatTimeLabel,
   lerpMesh,
   type AtlasMetric,
+  type TweenOptions,
   type GridSeriesSet,
   type MeshFeatureProps,
 } from "@/lib/atlas";
@@ -27,12 +28,20 @@ const EXTRUSION_ID = "atlas-mesh-extrusion";
 const DEFAULT_CENTER: [number, number] = [139.7671, 35.6812];
 const TWEEN_MS = 420;
 const RISE_MS = 760;
+const LIQUID_MS = 920;
 const DRAWER_W = 340;
 
 type Mesh = GeoJSON.FeatureCollection<GeoJSON.Polygon, MeshFeatureProps>;
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
+}
+
+// わずかに行き過ぎて戻る(液体のような弾み)。t=1 で必ず 1。高さだけに使う。
+function easeOutBack(t: number): number {
+  const c1 = 1.1;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
 }
 
 // 選択地点のピン。選択が変わるたびに波紋を2回だけ広げる(常時は動かさない: P8)。
@@ -116,6 +125,9 @@ export function AtlasMap({
   const shownRef = useRef<Mesh | null>(null);
   const shownKeyRef = useRef<string | null>(null);
   const tweenRef = useRef<number | null>(null);
+  const shownMetricRef = useRef<AtlasMetric | null>(null);
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -148,6 +160,7 @@ export function AtlasMap({
         : { type: "FeatureCollection", features: [] };
       shownRef.current = initial;
       shownKeyRef.current = grid ? meshKey(grid.fetchedAt, metric, timeIndex) : null;
+      shownMetricRef.current = metric;
       map.addSource(SOURCE_ID, { type: "geojson", data: initial });
       // 地名ラベルをメッシュの上に残す。
       const firstSymbol = map.getStyle().layers.find((l) => l.type === "symbol")?.id;
@@ -220,7 +233,13 @@ export function AtlasMap({
   }, []);
 
   // メッシュを from → target へ滑らかに動かす(高さと色だけ。最後のフレームは target と同一)。
-  function runTween(map: MapLibreMap, from: Mesh, target: Mesh, durationMs: number) {
+  function runTween(
+    map: MapLibreMap,
+    from: Mesh,
+    target: Mesh,
+    durationMs: number,
+    opts: TweenOptions = { ease: easeOutCubic },
+  ) {
     if (tweenRef.current !== null) cancelAnimationFrame(tweenRef.current);
     const source = map.getSource(SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
     if (!source) return;
@@ -235,7 +254,7 @@ export function AtlasMap({
     const start = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / durationMs);
-      push(lerpMesh(from, target, easeOutCubic(t)));
+      push(lerpMesh(from, target, t, opts));
       tweenRef.current = t < 1 ? requestAnimationFrame(tick) : null;
     };
     tweenRef.current = requestAnimationFrame(tick);
@@ -250,8 +269,22 @@ export function AtlasMap({
     shownKeyRef.current = key;
     const target = buildMeshGeoJson(grid, metric, timeIndex);
     const from = shownRef.current;
+    const metricChanged = shownMetricRef.current !== metric;
+    shownMetricRef.current = metric;
+    const sel = selectedRef.current;
     if (from && from.features.length === target.features.length) {
-      runTween(map, from, target, TWEEN_MS);
+      if (metricChanged && sel) {
+        // 指標の切替(Y2 #013/#019 の液体的な遷移): 選択地点から波が広がるように、
+        // 近いセルから順に動き、高さはわずかに弾む。最後のフレームは目標値と同じ。
+        runTween(map, from, target, LIQUID_MS, {
+          origin: [sel.lon, sel.lat],
+          spread: 0.6,
+          ease: easeOutCubic,
+          heightEase: easeOutBack,
+        });
+      } else {
+        runTween(map, from, target, TWEEN_MS);
+      }
     } else if (view === "3d") {
       // 初回のメッシュ到着: 立体なら柱が下から立ち上がる。
       runTween(map, flattenMesh(target), target, RISE_MS);
