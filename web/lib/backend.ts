@@ -1,6 +1,7 @@
 // Next.js API RouteからCloudflare Worker(worker/)を叩くserver-sideヘルパー。
 // WEATHERGEOBRIDGE_API_KEYはここでのみ扱い、ブラウザには絶対に渡さない。
 
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 
 // Worker側のローカル開発は `wrangler dev --port 8788`(README参照)なので、
@@ -18,15 +19,28 @@ export class BackendError extends Error {
   }
 }
 
+// 利用者のIP(Vercelが付けるx-forwarded-forの先頭)。WorkerのレートlimiterがIPごとに
+// 数えられるよう転送する。取れない場面(ビルド時など)では付けない。
+function clientIp(): string | null {
+  try {
+    const forwarded = headers().get("x-forwarded-for");
+    return forwarded?.split(",")[0]?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 async function backendFetch(
   path: string,
   init?: RequestInit,
 ): Promise<Response> {
+  const ip = clientIp();
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
       ...(init?.headers ?? {}),
       "X-API-Key": API_KEY,
+      ...(ip ? { "X-Client-IP": ip } : {}),
     },
     cache: "no-store",
   });

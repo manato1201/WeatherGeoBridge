@@ -13,6 +13,11 @@
     // CORSを許可するオリジン(カンマ区切り)。ここに無いオリジンからのブラウザ直接呼び出しは拒否される。
     "ALLOWED_ORIGINS": "https://weathergeobridge.vercel.app,http://localhost:3000,http://localhost:3001"
   },
+  // 呼び出し頻度の上限(src/auth.ts の rateLimit)。利用者(X-Client-IP)ごとに1分60回。
+  // 上限を超えると429。Open-Meteoの無料枠とKV書き込みを使い切られないための歯止め。
+  "ratelimits": [
+    { "name": "RATE_LIMITER", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } }
+  ],
   // 15分ごとに、購読者ごとの登録地点だけを対象に天気変化を判定して通知する
   // (src/scheduled.ts)。
   "triggers": {

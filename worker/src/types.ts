@@ -89,6 +89,10 @@ export interface Env {
   VAPID_SUBJECT: string;
   // ブラウザからのCORSを許可するオリジン(カンマ区切り)。未設定なら全拒否。
   ALLOWED_ORIGINS?: string;
+  // "true" のときだけ、API鍵が未設定でも認証なしで動かす(ローカル開発専用)。
+  ALLOW_UNAUTHENTICATED?: string;
+  // Workersのレート制限バインディング(wrangler.jsoncのratelimits)。未設定なら制限しない。
+  RATE_LIMITER?: { limit(options: { key: string }): Promise<{ success: boolean }> };
 }
 
 // 地図アトラス用: 複数地点の「いま〜+72h(3時間刻み)」の予報系列。

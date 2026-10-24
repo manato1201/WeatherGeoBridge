@@ -185,6 +185,13 @@ Claude Codeの設定例(`.mcp.json`):
 - **Workerの呼び出し元の絞り込み**: CORSは許可リスト方式(`ALLOWED_ORIGINS`、既定は本番ドメインとlocalhostのみ。未設定なら全拒否)。
   以前は`*`だった。ブラウザは通常Next.jsのAPI Route(server-side)経由でWorkerを呼ぶためCORSを必要としない。
   CORSはブラウザ向けの防御で、curl等からの呼び出しは`X-API-Key`認証が唯一の防御になる点に注意。
+- **認証は fail-closed**: `WEATHERGEOBRIDGE_API_KEY` が未設定のとき、Workerは全リクエストを503で拒否する
+  (以前は「未設定なら全許可」で、secret の設定漏れが無認証公開につながりえた)。ローカル開発で鍵なしにしたいときだけ
+  `worker/.dev.vars` に `ALLOW_UNAUTHENTICATED=true` を明示する。鍵の比較は定数時間(SHA-256にしてから全バイト比較)。
+- **レート制限**: `worker/wrangler.jsonc` の `ratelimits`(`RATE_LIMITER`)で、利用者IP(Next.jsのAPI Routeが `X-Client-IP`
+  として転送)ごとに1分60回。超過は429。`wrangler deploy` するまで本番には効かない。バインディング未設定の環境では制限しない。
+- **Web Pushの購読先は許可リスト**: `https` かつ主要ブラウザのプッシュサービス(FCM・Mozilla・Windows・Apple)のホストだけ。
+  任意URLを購読に登録して、WorkerにそこへPOSTさせることはできない。
 - リポジトリに追跡されている秘密ファイルは無い(`.dev.vars`・`.env*`は`.gitignore`済み)。
 - Wranglerに登録済みのsecretは上記2つのみ(`wrangler secret list`で確認)。
 - 要確認: Vercel側の環境変数は、この棚卸しの時点ではCLIの認証切れのため一覧を確認できていない。

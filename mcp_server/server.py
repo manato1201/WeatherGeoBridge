@@ -24,6 +24,7 @@ import urllib.request
 
 from mcp.server.mcpserver import MCPServer
 
+from mcp_server import decisions
 from mcp_server.decisions import DECIDERS
 
 mcp = MCPServer("WeatherGeoBridge")
@@ -69,6 +70,14 @@ def _get(path: str, params: dict, api_key: str) -> dict:
         raise WorkerError(f"Workerへの接続に失敗しました: {exc}") from exc
 
 
+def _check_hours(hours: int) -> None:
+    """hoursの範囲を、Workerを呼ぶ前に確かめる(不正な入力で外部呼び出しを無駄にしない)。"""
+    if not decisions.MIN_HOURS <= hours <= decisions.MAX_HOURS:
+        raise ValueError(
+            f"hoursは{decisions.MIN_HOURS}〜{decisions.MAX_HOURS}で指定してください"
+        )
+
+
 @mcp.tool()
 def get_weather(lat: float, lon: float, api_key: str = "") -> dict:
     """指定した緯度経度の現在の天気を取得する。"""
@@ -89,6 +98,7 @@ def decide_umbrella(lat: float, lon: float, hours: int = 6, api_key: str = "") -
     先読み時間内の最大値で、このルールの確からしさではない(予報であって保証ではない)。
     evidenceに判断の根拠(しきい値・ピーク時刻・現在の降水量)を含める。
     """
+    _check_hours(hours)
     forecast = _get("/api/weather/forecast", {"lat": lat, "lon": lon, "days": 1}, api_key)
     current = _get("/api/weather", {"lat": lat, "lon": lon}, api_key)
     return DECIDERS["umbrella"](forecast["hourly"], current["precipitationMm"], hours)
@@ -102,6 +112,7 @@ def decide_laundry(lat: float, lon: float, hours: int = 6, api_key: str = "") ->
     rain_probability_percentはOpen-Meteoの降水確率(予報)の最大値で、ルールの確からしさでは
     ない(予報であって保証ではない)。
     """
+    _check_hours(hours)
     forecast = _get("/api/weather/forecast", {"lat": lat, "lon": lon, "days": 1}, api_key)
     current = _get("/api/weather", {"lat": lat, "lon": lon}, api_key)
     return DECIDERS["laundry"](

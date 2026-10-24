@@ -4,7 +4,7 @@
 
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { requireApiKey } from "./auth";
+import { rateLimit, requireApiKey } from "./auth";
 import { getOrFetchWeather } from "./cache";
 import { addSubscription } from "./push";
 import { runScheduledAlertCheck } from "./scheduled";
@@ -55,7 +55,7 @@ function weatherErrorResponse(err: unknown): [{ error: string }, 400 | 502] {
   return [{ error: String(err instanceof Error ? err.message : err) }, 502];
 }
 
-app.get("/api/weather", requireApiKey, async (c) => {
+app.get("/api/weather", requireApiKey, rateLimit, async (c) => {
   const latlon = parseLatLon(c.req.query("lat"), c.req.query("lon"));
   if (!latlon) {
     return c.json({ error: "lat/lonは必須です(緯度-90〜90、経度-180〜180)" }, 400);
@@ -69,7 +69,7 @@ app.get("/api/weather", requireApiKey, async (c) => {
   }
 });
 
-app.get("/api/weather/forecast", requireApiKey, async (c) => {
+app.get("/api/weather/forecast", requireApiKey, rateLimit, async (c) => {
   const latlon = parseLatLon(c.req.query("lat"), c.req.query("lon"));
   if (!latlon) {
     return c.json({ error: "lat/lonは必須です(緯度-90〜90、経度-180〜180)" }, 400);
@@ -87,7 +87,7 @@ app.get("/api/weather/forecast", requireApiKey, async (c) => {
   }
 });
 
-app.get("/api/air-quality", requireApiKey, async (c) => {
+app.get("/api/air-quality", requireApiKey, rateLimit, async (c) => {
   const latlon = parseLatLon(c.req.query("lat"), c.req.query("lon"));
   if (!latlon) {
     return c.json({ error: "lat/lonは必須です(緯度-90〜90、経度-180〜180)" }, 400);
@@ -101,7 +101,7 @@ app.get("/api/air-quality", requireApiKey, async (c) => {
   }
 });
 
-app.get("/api/weather/history", requireApiKey, async (c) => {
+app.get("/api/weather/history", requireApiKey, rateLimit, async (c) => {
   const latlon = parseLatLon(c.req.query("lat"), c.req.query("lon"));
   if (!latlon) {
     return c.json({ error: "lat/lonは必須です(緯度-90〜90、経度-180〜180)" }, 400);
@@ -115,7 +115,7 @@ app.get("/api/weather/history", requireApiKey, async (c) => {
   }
 });
 
-app.get("/api/weather/series", requireApiKey, async (c) => {
+app.get("/api/weather/series", requireApiKey, rateLimit, async (c) => {
   const points = parsePoints(c.req.query("points"));
   if (!points) {
     return c.json(
@@ -131,7 +131,7 @@ app.get("/api/weather/series", requireApiKey, async (c) => {
   }
 });
 
-app.get("/api/weather/grid", requireApiKey, async (c) => {
+app.get("/api/weather/grid", requireApiKey, rateLimit, async (c) => {
   const params = parseGridParams((k) => c.req.query(k));
   if (!params) {
     return c.json(
@@ -149,7 +149,7 @@ app.get("/api/weather/grid", requireApiKey, async (c) => {
   }
 });
 
-app.post("/api/push/subscribe", requireApiKey, async (c) => {
+app.post("/api/push/subscribe", requireApiKey, rateLimit, async (c) => {
   let rawBody: unknown;
   try {
     rawBody = await c.req.json();
@@ -159,7 +159,7 @@ app.post("/api/push/subscribe", requireApiKey, async (c) => {
 
   const subscription = parsePushSubscription(rawBody);
   if (!subscription) {
-    return c.json({ error: "endpoint/keys.p256dh/keys.authは必須です" }, 400);
+    return c.json({ error: "endpoint(主要ブラウザのプッシュサービスのhttps URL)/keys.p256dh/keys.auth/locationは必須です" }, 400);
   }
 
   await addSubscription(c.env, subscription);

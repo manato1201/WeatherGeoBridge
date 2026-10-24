@@ -118,17 +118,42 @@ function parsePreferences(raw: unknown): NotificationPreferences {
   return { notifyPrecipitation, temperatureSwingThresholdC };
 }
 
+// Web Pushの送信先は、ブラウザが発行する主要プッシュサービスのホストだけを許可する。
+// 任意のURLを受け付けると、購読の登録経由でWorkerに任意のホストへPOSTさせられる
+// (VAPIDの署名ヘッダー付き)ため。
+const PUSH_HOST_SUFFIXES = [
+  ".push.services.mozilla.com",
+  ".notify.windows.com",
+  ".push.apple.com",
+];
+const PUSH_HOSTS = new Set(["fcm.googleapis.com"]);
+
+export function isAllowedPushEndpoint(endpoint: string): boolean {
+  if (endpoint.length > 2048) return false;
+  let url: URL;
+  try {
+    url = new URL(endpoint);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== "https:" || url.username || url.password) return false;
+  if (url.port && url.port !== "443") return false;
+  const host = url.hostname.toLowerCase();
+  return PUSH_HOSTS.has(host) || PUSH_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix));
+}
+
 export function parsePushSubscription(
   body: unknown,
 ): PushSubscriptionInput | null {
   if (typeof body !== "object" || body === null) return null;
   const b = body as Record<string, unknown>;
   if (typeof b.endpoint !== "string" || !b.endpoint) return null;
+  if (!isAllowedPushEndpoint(b.endpoint)) return null;
   const keys = b.keys;
   if (typeof keys !== "object" || keys === null) return null;
   const k = keys as Record<string, unknown>;
-  if (typeof k.p256dh !== "string" || !k.p256dh) return null;
-  if (typeof k.auth !== "string" || !k.auth) return null;
+  if (typeof k.p256dh !== "string" || !k.p256dh || k.p256dh.length > 256) return null;
+  if (typeof k.auth !== "string" || !k.auth || k.auth.length > 256) return null;
   const location = parseLocation(b.location);
   if (!location) return null;
   return {
