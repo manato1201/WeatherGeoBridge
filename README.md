@@ -100,7 +100,7 @@ node -e "import('@mmmike/web-push').then(async m => console.log(JSON.stringify(a
 
 公開鍵は`wrangler.jsonc`の`vars.VAPID_PUBLIC_KEY`に設定する(非機微情報)。
 `vars.VAPID_SUBJECT`はpushサービスが問題発生時に連絡する宛先(`mailto:`かURL)。既定のプレースホルダから
-自分の連絡先に変更することを推奨する。
+自分の連絡先に変更することを推奨する。**公開リポジトリには、メールアドレスではなくプロフィールなどの `https://` の URL を置く**(`push.ts` は `mailto:` か `https://` だけを受け付ける)。
 
 ローカル動作確認:
 

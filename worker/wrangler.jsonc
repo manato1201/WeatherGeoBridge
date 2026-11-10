@@ -9,7 +9,8 @@
   ],
   "vars": {
     "VAPID_PUBLIC_KEY": "BK3op_B-KpCUghZCBi_sKnd3kKJNCL5DzslKNkzKpi3Q4ZylIQU3R1Jl0sLptRPt2O6DmRlIrONHky1Q6IWvrcs",
-    "VAPID_SUBJECT": "mailto:takutoj048@gmail.com",
+    // push サービスが問題時に連絡する宛先。mailto: か https:// の URL(メールアドレスを公開リポジトリに置かないため、プロフィールの URL にしている)
+    "VAPID_SUBJECT": "https://github.com/manato1201",
     // CORSを許可するオリジン(カンマ区切り)。ここに無いオリジンからのブラウザ直接呼び出しは拒否される。
     "ALLOWED_ORIGINS": "https://weathergeobridge.vercel.app,http://localhost:3000,http://localhost:3001"
   },
