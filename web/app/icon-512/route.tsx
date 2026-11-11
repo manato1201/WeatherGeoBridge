@@ -1,26 +1,9 @@
 import { ImageResponse } from "next/og";
+import { MarkSvg } from "../../lib/mark";
 
 export const runtime = "edge";
 
+// PWA(manifest)用。maskable でも欠けないよう、全面を塗り、マークは安全領域の内側へ置く。
 export function GET() {
-  return new ImageResponse(
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#12130f",
-        borderRadius: 88,
-        color: "#e4dfda",
-        fontSize: 256,
-        fontWeight: 600,
-        fontFamily: "sans-serif",
-      }}
-    >
-      W
-    </div>,
-    { width: 512, height: 512 },
-  );
+  return new ImageResponse(<MarkSvg size={512} rx={0} inset={0.16} />, { width: 512, height: 512 });
 }
