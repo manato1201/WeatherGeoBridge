@@ -72,18 +72,18 @@ def check_mermaid(path: Path) -> list[str]:
 def runnable(path: Path):
     blocks = quote_code.fenced_blocks(path.read_text(encoding="utf-8"))
     for i, b in enumerate(blocks):
-        if b.lines and b.lines[0].strip() == quote_code.RUN_MARK:
+        if b.lines and quote_code.is_run_mark(b.lines[0]):
             nxt = blocks[i + 1] if i + 1 < len(blocks) else None
-            expected = "\n".join(nxt.lines[1:]).strip() if nxt and nxt.lines and nxt.lines[0].strip() == quote_code.OUTPUT_MARK else None
-            yield b.start + 1, "\n".join(b.lines[1:]), expected
+            expected = "\n".join(nxt.lines[1:]).strip() if nxt and nxt.lines and quote_code.is_output_mark(nxt.lines[0]) else None
+            yield b.start + 1, b.lines[0], "\n".join(b.lines[1:]), expected
 
 
 def check_examples(path: Path) -> tuple[list[str], int]:
     out, n = [], 0
-    for line, code, expected in runnable(path):
+    for line, first, code, expected in runnable(path):
         n += 1
         for _ in range(2):  # 2 回走らせる(乱数・順序に頼る出力を見つける)
-            res = subprocess.run([sys.executable, "-X", "utf8", "-c", code], capture_output=True, text=True, encoding="utf-8", cwd=ROOT, timeout=300, check=False, env=quote_code.example_env())
+            res = quote_code.run_example(first, code)
             if res.returncode != 0:
                 out.append(f"{path.relative_to(ROOT)}:{line}: 実行に失敗\n{res.stderr.strip()[-300:]}")
                 break

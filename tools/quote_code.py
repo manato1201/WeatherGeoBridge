@@ -62,6 +62,29 @@ QUOTE_MARK = "# 引用:"
 EXCERPT_MARK = "# 抜粋:"
 RUN_MARK = "# 実行できる"
 OUTPUT_MARK = "# 出力"
+RUN_MARK_JS = "// 実行できる"  # JavaScript の例。node で動かす(``tools/docs_node_cwd.txt`` の 1 行目が、作業フォルダ。ルートからの相対)
+OUTPUT_MARK_JS = "// 出力"
+OUTPUT_MARKS = (OUTPUT_MARK, OUTPUT_MARK_JS)
+
+
+def is_run_mark(line: str) -> bool:
+    return line.strip() in (RUN_MARK, RUN_MARK_JS)
+
+
+def is_output_mark(line: str) -> bool:
+    return line.strip() in OUTPUT_MARKS
+
+
+def run_example(first_line: str, code: str, timeout: int = 300) -> "subprocess.CompletedProcess[str]":
+    """``# 実行できる``(Python)か ``// 実行できる``(node)のコードを動かす。"""
+    if first_line.strip() == RUN_MARK_JS:
+        cfg = ROOT / "tools" / "docs_node_cwd.txt"
+        cwd = ROOT / (cfg.read_text(encoding="utf-8").splitlines()[0].strip() if cfg.exists() else ".")
+        return subprocess.run(["node", "--experimental-strip-types", "--no-warnings", "-e", code], capture_output=True, text=True, encoding="utf-8", cwd=cwd, timeout=timeout, check=False)
+    return subprocess.run(
+        [sys.executable, "-X", "utf8", "-c", code], capture_output=True, text=True, encoding="utf-8", cwd=ROOT, timeout=timeout, check=False,
+        env=example_env(),
+    )
 
 FILE_EXCERPT = re.compile(r"^(?:#|//|/\*) 抜粋ファイル: (?P<path>\S+?)(?:\s*\*/)?\s*$")
 _PLACEHOLDER = re.compile(r"^@@引用 (?P<ref>\S+::\S+)@@\s*$")
@@ -164,21 +187,17 @@ def fill_outputs(text: str) -> str:
     blocks = fenced_blocks(text)
     for index in range(len(blocks) - 1, -1, -1):
         block = blocks[index]
-        if not block.lines or block.lines[0].strip() != RUN_MARK:
+        if not block.lines or not is_run_mark(block.lines[0]):
             continue
         nxt = blocks[index + 1] if index + 1 < len(blocks) else None
-        if not (nxt and nxt.lines and nxt.lines[0].strip() == OUTPUT_MARK):
+        if not (nxt and nxt.lines and is_output_mark(nxt.lines[0])):
             continue
         code = "\n".join(block.lines[1:])
-        with tempfile.TemporaryDirectory() as tmp:
-            result = subprocess.run(
-                [sys.executable, "-X", "utf8", "-c", code], capture_output=True, text=True, encoding="utf-8", cwd=ROOT, timeout=300, check=False,
-                env=example_env(),
-            )
+        result = run_example(block.lines[0], code)
         if result.returncode != 0:
             raise RuntimeError(f"{block.start + 1} 行目のコードが失敗しました:\n{result.stderr}")
         output = result.stdout.rstrip("\n").split("\n") if result.stdout.strip() else ["(出力なし)"]
-        lines[nxt.start + 1 : nxt.end] = [OUTPUT_MARK, *output]
+        lines[nxt.start + 1 : nxt.end] = [nxt.lines[0].strip(), *output]
     return "\n".join(lines)
 
 
