@@ -6,5 +6,5 @@
 |---|---|
 | まず知る | [README](../README.md) |
 | **基礎から学ぶ**(講義 3 回) | [講義](lecture/index.md) |
-| コードの地図・既知の問題 | [学習資料](learn/index.md) |
+| 保守・拡張の実務(コードの読み方・拡張のレシピ・既知の問題) | [学習資料](learn/index.md) |
 | 公開 URL・API・セットアップの詳細 | [setup-and-operations.md](reference/setup-and-operations.md) |

@@ -17,7 +17,7 @@ web/          Next.js(ダッシュボード・天気アトラス。Vercel)
 | 公開 | トップ・天気アトラス・ダッシュボード・REST API・MCP([詳細](docs/reference/setup-and-operations.md)) |
 | テスト | `python -m unittest mcp_server.test_decisions`・`python -m pytest tests/test_docs.py`(文書の検査) |
 | 未確認 | Worker(TypeScript)・Next.js は、この文書の検査では**実行していません** |
-| 学習資料 | 講義 3 回あり。**保守・拡張の詳しい資料は未作成**(簡易版のみ) |
+| 学習資料 | 講義 3 回+保守・拡張の学習資料(全体像・コードの読み方・内側のしくみ・拡張・テスト・トラブルと保守・用語集) |
 | 既知の問題 | [docs/learn/index.md](docs/learn/index.md)(MCP が `api_key` を引数で受ける 等) |
 
 ## ドキュメント
